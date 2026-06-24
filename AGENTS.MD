@@ -1,0 +1,1 @@
+Any python/node test files (like testing a server's functionality) should be done in the `__agenttests__` folder.

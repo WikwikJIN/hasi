@@ -1,0 +1,17 @@
+{
+  "name": "hasi",
+  "version": "1.0.0",
+  "description": "HASI Hacker account slaying initiative, a roblox database for exploiters",
+  "license": "ISC",
+  "author": "wikdomain.com",
+  "type": "commonjs",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.11.1",
+    "express": "^5.2.1"
+  }
+}
