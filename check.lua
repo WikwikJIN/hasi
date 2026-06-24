@@ -1,11 +1,13 @@
 -- Server-side: HASI remote check + kick
 -- Place this Script under ServerScriptService
+-- Also don't forget to enable HTTP requests in the game settings for this to work.
+--  + Don't get mad at me if a free model gives your game a backdoor since it's your fault.
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 -- CONFIG
-local BASE_URL = "https://wikdomain.com/hasidb" -- no trailing slash
+local BASE_URL = "https://wikdomain.com/hasidb" -- do your link or use the public one that will prob be denial-of-service attacked someday lol
 local ENDPOINT_PREFIX = "/user/" -- full request: BASE_URL .. ENDPOINT_PREFIX .. urlencoded username
 local MAX_RETRIES = 3
 local RETRY_DELAY = 1 -- seconds between retries
