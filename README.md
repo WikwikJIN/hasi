@@ -17,7 +17,7 @@ There are 3 parts of the project:
 
 ## HOW TO USE THE API
 NOTE: The database is autocreated when the server starts
-### GETTING A USERNAME/ID
+### GETTING AN USERNAME/ID
 You need to make a GET request to the endpoint `/user/<username>` or `/id/<id>` The username will contact Roblox's API to get the ID, and then check if the ID is in the database. If it is, it will return the data, if not, it will return a message saying the user is not in the database. The ID endpoint will just check if the ID is in the database and return the data if it is, or a message saying the user is not in the database if it isn't.
 #### EXAMPLE RESPONSES
 ##### Not flagged response:
