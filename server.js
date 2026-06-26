@@ -104,27 +104,36 @@ app.get("/id/:uid", (req, res) => {
 });
 
 app.post("/flag", checkPerms("write"), async (req, res) => {
-  const { username, description, key } = req.body;
-  if (!username || !description) return res.status(400).json({ error: "username and description are required." });
+  const { username, uid, description, key } = req.body;
+  if (!description) return res.status(400).json({ error: "description is required." });
+  if (!username && !uid) return res.status(400).json({ error: "username or uid is required." });
 
   try {
-    const users = await getuser([username]);
-    if (!users || users.length === 0) {
-      return res.status(404).json({ error: "User not found." });
+    let resolvedUsername = username;
+    let resolvedUid = uid;
+
+    if (!resolvedUid && username) {
+      const users = await getuser([username]);
+      if (!users || users.length === 0) {
+        return res.status(404).json({ error: "User not found." });
+      }
+      resolvedUid = users[0].id;
     }
 
-    const uid = users[0].id;
-    // Prevent duplicate flagged entries: if a non-deleted row exists for this uid, reject
-    const existing = getFlagged.get(uid);
+    if (!resolvedUid) {
+      return res.status(400).json({ error: "Unable to resolve the target user." });
+    }
+
+    const existing = getFlagged.get(Number(resolvedUid));
     if (existing && existing.uid && existing.uid !== 0) {
       return res.status(409).json({ error: "User is already flagged." });
     }
-    insertFlagged.run(uid, description);
-    res.status(201).json({ message: "User flagged successfully.", uid: uid });
-    console.log(`✅ User ${username} (ID: ${uid}) flagged by ${req.ip}: ${description}`);
-    console.log(`Short: ✅ Added ${username} to flagged list, Description: ${description}`);
+    insertFlagged.run(Number(resolvedUid), description);
+    res.status(201).json({ message: "User flagged successfully.", uid: Number(resolvedUid) });
+    console.log(`✅ User ${resolvedUsername || resolvedUid} (ID: ${resolvedUid}) flagged by ${req.ip}: ${description}`);
+    console.log(`Short: ✅ Added ${resolvedUsername || resolvedUid} to flagged list, Description: ${description}`);
   } catch (error) {
-    console.error(`Error flagging user ${username}: ${error}`);
+    console.error(`Error flagging user ${username || uid}: ${error}`);
     res.status(500).json({ error: "Internal server error" });
   }
 });

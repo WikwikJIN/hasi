@@ -150,3 +150,4 @@ gui_settings.json
 *.database
 __agenttests__/
 package_lock.json
+__pycache__/

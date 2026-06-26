@@ -17,13 +17,34 @@ import PySimpleGUI as sg
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 SETTINGS_FILE = os.path.join(BASE_DIR, "gui_settings.json")
 
-ACCENT = "#0b3d91"
-BG = "#0f1724"
-INPUT_BG = "#16283b"
+ACCENT = "#010f25"
+BG = "#060a0f"
+INPUT_BG = "#102031"
 TEXT = "#E6EEF8"
 
 DEFAULT_BASE = "http://localhost:3000"
-DEFAULT_CHECKBOXES = ["Flying", "Spinning ring parts", "Speedhacks", "Flinging"]
+LEGACY_DEFAULT_CHECKBOXES = ["Flying", "Spinning ring parts", "Speedhacks", "Flinging"]
+DEFAULT_CHECKBOXES = [
+    "Flying",
+    "Spinning ring parts",
+    "Speedhacks",
+    "Flinging",
+    "Teleporting",
+    "Wallhack",
+    "Aimbot",
+    "ESP",
+    "Rapid fire",
+    "Infinite jump",
+    "Noclip",
+    "Auto farm",
+    "Macroing",
+    "Exploit usage",
+    "Account sharing",
+    "Phishing",
+    "Scamming",
+    "Harassment",
+    "Impersonation",
+]
 DEFAULT_SETTINGS = {
     "window_size": "1024x768",
     "include_ip_in_logs": True,
@@ -34,6 +55,7 @@ DEFAULT_SETTINGS = {
     "save_api_key": True,
     "server_url": DEFAULT_BASE,
     "hide_server": True,
+    "client_side_username_resolution": False,
 }
 
 
@@ -44,6 +66,8 @@ def load_settings():
             with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
                 user_s = json.load(f)
                 s.update(user_s)
+                if s.get("checkbox_options") in (None, [], LEGACY_DEFAULT_CHECKBOXES):
+                    s["checkbox_options"] = DEFAULT_CHECKBOXES
     except Exception:
         pass
     return s
@@ -174,6 +198,7 @@ def build_window():
     ]
     add_layout += add_rows
     add_layout += [[sg.Button("Add Flagged", key="-ADD-FLAG-")]]
+    add_layout += [[sg.Checkbox("Resolve username → ID client-side", key="-ADD-RESOLVE-USERNAME-", default=settings.get("client_side_username_resolution", False), enable_events=True)]]
 
     # Modify tab
     mod_rows = make_checkbox_rows("-MOD-OPT-", opts)
@@ -184,11 +209,13 @@ def build_window():
     ]
     modify_layout += mod_rows
     modify_layout += [[sg.Button("Modify Flagged", key="-MOD-FLAG-")]]
+    modify_layout += [[sg.Checkbox("Resolve username → ID client-side", key="-MOD-RESOLVE-USERNAME-", default=settings.get("client_side_username_resolution", False), enable_events=True)]]
 
     # Delete tab
     delete_layout = [
         [sg.Text("UID or Username", size=(18, 1)), sg.Input(key="-DEL-Q-", size=(30, 1))],
         [sg.Button("Delete Flagged", key="-DELETE-FLAG-")],
+        [sg.Checkbox("Resolve username → ID client-side", key="-DEL-RESOLVE-USERNAME-", default=settings.get("client_side_username_resolution", False), enable_events=True)],
     ]
 
     # Check tab
@@ -203,6 +230,15 @@ def build_window():
         [sg.Button("Clear Logs", key="-CLEAR-LOGS-"), sg.Button("Copy Logs", key="-COPY-LOGS-")],
     ]
 
+    # API Keys tab
+    api_keys_layout = [
+        [sg.Text("Master key controls")],
+        [sg.Button("Check Master Key", key="-CHECK-MASTER-"), sg.Button("Create API Key", key="-CREATE-API-KEY-")],
+        [sg.Text("New key permissions (comma-separated)")],
+        [sg.Input(default_text="write,modify,delete", key="-SET-KEY-PERMS-", size=(40, 1))],
+        [sg.Multiline(key="-API-KEY-LOG-", size=(90, 10), disabled=True, autoscroll=True)],
+    ]
+
     # Settings tab
     settings_layout = [
         [sg.Text("Window size"), sg.Combo(["800x600", "1024x768", "1280x800", "1366x768", "Maximized"], default_value=settings.get("window_size", "1024x768"), key="-SET-WIN-SZ-")],
@@ -211,6 +247,7 @@ def build_window():
         [sg.Checkbox("Hide server URL in topbar", key="-SET-HIDE-SERVER-", default=settings.get("hide_server", True)), sg.Checkbox("Save API key", key="-SET-SAVE-API-", default=settings.get("save_api_key", True))],
         [sg.Text("Stored API Key (leave blank to keep existing)")],
         [sg.Input(password_char="*", key="-SET-API-KEY-", size=(40, 1), default_text=("" if not settings.get("stored_api_key") else "********"))],
+        [sg.Checkbox("Resolve username → ID client-side", key="-SET-RESOLVE-USERNAME-", default=settings.get("client_side_username_resolution", False), enable_events=True)],
         [sg.Text("Checkbox options (one per line):")],
         [sg.Multiline(default_text="\n".join(settings.get("checkbox_options", DEFAULT_CHECKBOXES)), key="-SET-OPT-MULTI-", size=(60, 6))],
         [sg.Button("Save Settings", key="-SET-SAVE-")],
@@ -234,6 +271,7 @@ def build_window():
                         sg.Tab("Delete", delete_layout),
                         sg.Tab("Check", check_layout),
                         sg.Tab("Logs", logs_layout),
+                        sg.Tab("API Keys", api_keys_layout),
                         sg.Tab("Settings", settings_layout),
                     ]
                 ],
@@ -245,6 +283,7 @@ def build_window():
     ]
 
     win = sg.Window("HASI Admin", layout, finalize=True)
+    sync_resolution_checkbox_state(win, settings.get("client_side_username_resolution", False))
     # Apply saved window size
     try:
         ws = settings.get("window_size")
@@ -307,6 +346,32 @@ def build_checkbox_description(values, prefix):
     return chosen
 
 
+def has_description(values, manual_text, prefix):
+    if (manual_text or "").strip():
+        return True
+    opts = settings.get("checkbox_options", DEFAULT_CHECKBOXES)
+    return any(values.get(f"{prefix}{i}") for i in range(len(opts)))
+
+
+def resolve_username_to_uid(username, resolve_enabled):
+    if not resolve_enabled or not username:
+        return None, None
+    return lookup_uid_public(username)
+
+
+def sync_resolution_checkbox_state(win, value=None):
+    if value is None:
+        value = settings.get("client_side_username_resolution", False)
+    value = bool(value)
+    settings["client_side_username_resolution"] = value
+    for key in ("-ADD-RESOLVE-USERNAME-", "-MOD-RESOLVE-USERNAME-", "-DEL-RESOLVE-USERNAME-", "-SET-RESOLVE-USERNAME-"):
+        try:
+            win[key].update(value=value)
+        except Exception:
+            pass
+    return value
+
+
 def main_loop():
     global settings
     while True:
@@ -320,6 +385,13 @@ def main_loop():
             if event in (sg.WIN_CLOSED, "Exit"):
                 win.close()
                 return
+
+            if event in ("-ADD-RESOLVE-USERNAME-", "-MOD-RESOLVE-USERNAME-", "-DEL-RESOLVE-USERNAME-", "-SET-RESOLVE-USERNAME-"):
+                settings["client_side_username_resolution"] = bool(values.get(event))
+                sync_resolution_checkbox_state(win, settings["client_side_username_resolution"])
+                if event == "-SET-RESOLVE-USERNAME-":
+                    save_settings(settings)
+                continue
 
             if event == "-TEST-SERVER-":
                 base = get_effective_server(values)
@@ -336,7 +408,7 @@ def main_loop():
                 username = (values.get("-ADD-USERNAME-") or "").strip()
                 uid_field = (values.get("-ADD-UID-") or "").strip()
                 manual = (values.get("-ADD-DESC-") or "").strip()
-                if not manual and not any(values.get(f"-ADD-OPT-{i}") for i in range(len(settings.get("checkbox_options", [])))):
+                if not has_description(values, manual, "-ADD-OPT-"):
                     append_log_local(win, "Description is required (manual or checkbox).")
                     continue
                 if not username and not uid_field:
@@ -359,6 +431,13 @@ def main_loop():
                 payload = {"username": username, "description": final_desc}
                 if key:
                     payload["key"] = key
+                if settings.get("client_side_username_resolution", False):
+                    resolved_uid, resolve_err = resolve_username_to_uid(username, True)
+                    if resolve_err:
+                        append_log_local(win, f"Couldn't resolve username to ID: {resolve_err}")
+                        continue
+                    if resolved_uid is not None:
+                        payload["uid"] = resolved_uid
                 st, data, err = http_request("POST", base, "/flag", payload)
                 if err:
                     append_log_local(win, f"Error adding flagged: {err}")
@@ -385,8 +464,8 @@ def main_loop():
                 uid_field = (values.get("-MOD-UID-") or "").strip()
                 manual = (values.get("-MOD-DESC-") or "").strip()
                 key = get_effective_key(values)
-                if not (username or uid_field) or not manual:
-                    append_log_local(win, "Username or UID and new description are required to modify.")
+                if not (username or uid_field) or not has_description(values, manual, "-MOD-OPT-"):
+                    append_log_local(win, "Username or UID and a description are required to modify.")
                     continue
 
                 # build checkbox additions
@@ -427,23 +506,34 @@ def main_loop():
                         except Exception:
                             pass
                 else:
-                    st, data, err = http_request("GET", base, f"/user/{username}")
-                    if err:
-                        append_log_local(win, f"Error fetching user: {err}")
-                        continue
-                    if st == 200 and isinstance(data, dict) and data.get("message") and "No flagged entries" in data.get("message"):
-                        append_log_local(win, "No existing flagged entry; adding new one.")
-                        payload = {"username": username, "description": final_desc}
-                        if key:
-                            payload["key"] = key
-                        st2, res2, e2 = http_request("POST", base, "/flag", payload)
-                        if e2:
-                            append_log_local(win, f"Error adding flagged: {e2}")
+                    if settings.get("client_side_username_resolution", False) and username:
+                        resolved_uid, resolve_err = resolve_username_to_uid(username, True)
+                        if resolve_err:
+                            append_log_local(win, f"Couldn't resolve username to ID: {resolve_err}")
+                            continue
+                        if resolved_uid is not None:
+                            uid = resolved_uid
                         else:
-                            append_log_local(win, f"Added flagged: {res2}")
-                        continue
-                    if st == 200 and isinstance(data, dict) and data.get("uid"):
-                        uid = data.get("uid")
+                            append_log_local(win, f"No UID resolved for {username}")
+                            continue
+                    else:
+                        st, data, err = http_request("GET", base, f"/user/{username}")
+                        if err:
+                            append_log_local(win, f"Error fetching user: {err}")
+                            continue
+                        if st == 200 and isinstance(data, dict) and data.get("message") and "No flagged entries" in data.get("message"):
+                            append_log_local(win, "No existing flagged entry; adding new one.")
+                            payload = {"username": username, "description": final_desc}
+                            if key:
+                                payload["key"] = key
+                            st2, res2, e2 = http_request("POST", base, "/flag", payload)
+                            if e2:
+                                append_log_local(win, f"Error adding flagged: {e2}")
+                            else:
+                                append_log_local(win, f"Added flagged: {res2}")
+                            continue
+                        if st == 200 and isinstance(data, dict) and data.get("uid"):
+                            uid = data.get("uid")
 
                 # If we have a uid, PATCH the entry
                 if "uid" in locals():
@@ -481,15 +571,26 @@ def main_loop():
                 if q.isdigit():
                     uid = q
                 else:
-                    st, data, err = http_request("GET", base, f"/user/{q}")
-                    if err:
-                        append_log_local(win, f"Error fetching user: {err}")
-                        continue
-                    if st == 200 and isinstance(data, dict) and data.get("uid"):
-                        uid = data.get("uid")
+                    if settings.get("client_side_username_resolution", False):
+                        resolved_uid, resolve_err = resolve_username_to_uid(q, True)
+                        if resolve_err:
+                            append_log_local(win, f"Couldn't resolve username to ID: {resolve_err}")
+                            continue
+                        if resolved_uid is not None:
+                            uid = str(resolved_uid)
+                        else:
+                            append_log_local(win, f"User not flagged or not found: {q}")
+                            continue
                     else:
-                        append_log_local(win, f"User not flagged or not found: {data}")
-                        continue
+                        st, data, err = http_request("GET", base, f"/user/{q}")
+                        if err:
+                            append_log_local(win, f"Error fetching user: {err}")
+                            continue
+                        if st == 200 and isinstance(data, dict) and data.get("uid"):
+                            uid = data.get("uid")
+                        else:
+                            append_log_local(win, f"User not flagged or not found: {data}")
+                            continue
                 if not key:
                     append_log_local(win, "Deleting requires an API key in the API Key field.")
                     continue
@@ -534,7 +635,19 @@ def main_loop():
                         win["-CHK-OUTPUT-"].update(value=str(data) + "\n", append=True)
                 else:
                     append_log_local(win, f"Request from {client_ip} for username: {q}")
-                    st, data, err = http_request("GET", base, f"/user/{q}")
+                    if settings.get("client_side_username_resolution", False):
+                        resolved_uid, resolve_err = resolve_username_to_uid(q, True)
+                        if resolve_err:
+                            append_log_local(win, f"Error: {resolve_err}")
+                            win["-CHK-OUTPUT-"].update(value=f"Error: {resolve_err}\n", append=True)
+                            continue
+                        if resolved_uid is None:
+                            append_log_local(win, f"User not found: {q}")
+                            win["-CHK-OUTPUT-"].update(value=f"User not found: {q}\n", append=True)
+                            continue
+                        st, data, err = http_request("GET", base, f"/id/{resolved_uid}")
+                    else:
+                        st, data, err = http_request("GET", base, f"/user/{q}")
                     if err:
                         append_log_local(win, f"Error: {err}")
                         win["-CHK-OUTPUT-"].update(value=f"Error: {err}\n", append=True)
@@ -560,6 +673,43 @@ def main_loop():
 
             if event == "-COPY-LOGS-":
                 copy_logs_to_clipboard(win)
+
+            if event == "-CHECK-MASTER-":
+                base = get_effective_server(values)
+                key = get_effective_key(values)
+                if not key:
+                    append_log_local(win, "Enter an API key to check master status.")
+                    continue
+                try:
+                    r = requests.get(strip_base(base) + "/ismaster", params={"key": key}, timeout=5)
+                    try:
+                        data = r.json()
+                    except Exception:
+                        data = r.text
+                    append_log_local(win, f"Master key check response: {data}")
+                except Exception as e:
+                    append_log_local(win, f"Master key check failed: {e}")
+
+            if event == "-CREATE-API-KEY-":
+                base = get_effective_server(values)
+                key = get_effective_key(values)
+                perms_text = (values.get("-SET-KEY-PERMS-") or "").strip()
+                if not key:
+                    append_log_local(win, "Enter a master API key to create another key.")
+                    continue
+                perms = [p.strip() for p in perms_text.split(",") if p.strip()]
+                if not perms:
+                    append_log_local(win, "Enter at least one permission to create a key.")
+                    continue
+                st, data, err = http_request("POST", base, "/apikey", {"key": key, "perms": perms})
+                if err:
+                    append_log_local(win, f"API key creation failed: {err}")
+                    continue
+                if st and 200 <= st < 300:
+                    new_key = data.get("key") if isinstance(data, dict) else None
+                    append_log_local(win, f"API key created: {new_key or data}")
+                else:
+                    append_log_local(win, f"API key creation failed (status {st}): {data}")
 
             if event == "-SET-SAVE-":
                 # Update settings from settings tab inputs
