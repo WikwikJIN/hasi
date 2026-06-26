@@ -1,1 +1,1 @@
-Any python/node test files (like testing a server's functionality) should be done in the `__agenttests__` folder.
+Any python/node test files (like testing a server's functionality) should be done in the `__agenttests__` folder. If it does not exist, create it in the root of the project. The `__agenttests__` folder is ignored by git and will not be published to npm.

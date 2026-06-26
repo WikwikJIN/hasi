@@ -141,3 +141,12 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Others
+gui_settings.json
+*.db
+*.sqlite
+*.sqlite3
+*.database
+__agenttests__/
+package_lock.json

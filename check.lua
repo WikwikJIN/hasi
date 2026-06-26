@@ -1,7 +1,7 @@
 -- Server-side: HASI remote check + kick
 -- Place this Script under ServerScriptService
 -- Also don't forget to enable HTTP requests in the game settings for this to work.
---  + Don't get mad at me if a free model gives your game a backdoor since it's your fault.
+--  + Don't get mad at me if a free model gives your game a http request backdoor since it's your fault.
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
