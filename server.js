@@ -28,6 +28,7 @@ const markFlagged = db.prepare("UPDATE flagged SET uid = 0, description = '-' WH
 const updateFlagged = db.prepare("UPDATE flagged SET description = ? WHERE uid = ?");
 
 const findApiKey = async (key) => {
+  if (!key) return null;
   const rows = getApiKeys.all();
   for (const row of rows) {
     if (await compareHash(key, row.key)) {
