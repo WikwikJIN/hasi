@@ -102,6 +102,7 @@ This is how a table looks like in the database:
 |1|1234567890|Exploiting|
 |2|9876543210|Scamming|
 |3|0|-|
+-------
 The columns are as follows:
 - id: The ban id, this is the primary key and is auto-incremented.
 - uid: The Roblox user id, this is the unique identifier for the user.
@@ -112,8 +113,7 @@ This is how a table looks like in the database:
 |-----|---|
 |["write","modify"]|1234567890abcdef|
 |["write","modify","delete"]|habibidonpollo21435eytu|
-I apologize for storing keys in plaintext, because i want to easily add keys with raw SQL commands, and i don't want to make a key management system.
-I would make a "master" key to add and delete API keys, so keys can be added and deleted without having to access the database directly, and also this would allow for safer key storage, using ex. bcrypt. Coming soon.
+-----------------------------------------------------
 The columns are as follows:
 - perms: The permissions for the key, this is a JSON array of strings that can be "read", "write", "modify", or "delete". The permissions are as follows:
   - write: Allows the user to write data to the database.
@@ -135,4 +135,4 @@ Instead of directly port-fowarding the server, you can use a reverse proxy to fo
 - Nginx
 - Caddy
 - Microsoft IIS URL Rewrite
-Then, refer to the documentation of the reverse proxy service.
+###### Then, refer to the documentation of the reverse proxy service.
