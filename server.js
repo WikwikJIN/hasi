@@ -6,7 +6,11 @@ console.log("HASI by wik")
 const debug = process.argv.includes('--test')
 if (debug) {console.log("IN DEBUG MODE")}
 
-// Import stuff
+// SETTINGS
+const PORT = process.env.PORT || 3000; // Port for Express to listen on
+const enableUserNameLookup = true; // Enable user lookup via /user/:username endpoint
+
+// Import stuff and set up hash functions
 const express = require("express");
 const Database = require("better-sqlite3");
 const { getuser } = require('./getId');
@@ -90,7 +94,6 @@ app.use((err, req, res, next) => {
   }
   next(err);
 });
-const PORT = process.env.PORT || 3000;
 
 app.get("/id/:uid", (req, res) => {
   console.log(`Request from ${req.ip} for UID: ${req.params.uid}`);
@@ -152,6 +155,9 @@ app.delete("/flag/:uid", checkPerms("delete"), (req, res) => {
 });
 
 app.get("/user/:username", async (req, res) => {
+  if (!enableUserNameLookup) {
+    return res.status(403).json({ message: "User lookup is disabled." });
+  }
   console.log(`Request from ${req.ip} for username: ${req.params.username}`);
   try {
     const users = await getuser([req.params.username]);
@@ -214,6 +220,7 @@ app.get("/ismaster", async (req, res) => {
   const master = await isMasterKey(key);
   res.json({ message: master });
 })
+
 // Easter egg
 app.get("/teapot", (req, res) => {
   res.status(200).json({ message: "AVIABLE OPTIONS, ONE OF THEM ARE VALID: coffee, tea, cocoa, cocacola, 7up, sprite, fanta, blended-glass-with-milk" });
