@@ -223,7 +223,7 @@ app.get("/ismaster", async (req, res) => {
 
 // Easter egg
 app.get("/teapot", (req, res) => {
-  res.status(200).json({ message: "AVIABLE OPTIONS, ONE OF THEM ARE VALID: coffee, tea, cocoa, cocacola, 7up, sprite, fanta, blended-glass-with-milk" });
+  res.status(200).json({ message: "AVAILABLE OPTIONS, ONE OF THEM ARE VALID: coffee, tea, cocoa, cocacola, 7up, sprite, fanta, blended-glass-with-milk" });
 });
 app.get("/teapot/:drink", (req, res) => {
   if (req.params.drink !== "tea") {
