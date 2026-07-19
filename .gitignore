@@ -149,5 +149,6 @@ gui_settings.json
 *.sqlite3
 *.database
 __agenttests__/
-package_lock.json
+package-lock.json
 __pycache__/
+.venv/

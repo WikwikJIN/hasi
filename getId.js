@@ -1,4 +1,4 @@
-// HASI: Hacker account slaying initiative get id script
+// HASI: Hacker account slaying initiative - Get UID script
 async function getUserIds(usernames) {
   const res = await fetch("https://users.roblox.com/v1/usernames/users", {
     method: "POST",

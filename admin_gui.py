@@ -1,13 +1,8 @@
-#!/usr/bin/env python3
 """
 HASI Admin GUI — Server-only mode
 This GUI talks to a running HASI server over HTTP so it can run remotely.
-Features added:
-- Separate Add / Modify / Delete / Check tabs
-- Customizable checkbox options (via Settings)
-- API key and Server URL can be saved and are masked in the UI
-- Logs tab will fetch server logs
 """
+
 import os
 import json
 import time
@@ -33,17 +28,12 @@ DEFAULT_CHECKBOXES = [
     "Wallhack",
     "Aimbot",
     "ESP",
-    "Rapid fire",
     "Infinite jump",
     "Noclip",
     "Auto farm",
     "Macroing",
-    "Exploit usage",
     "Account sharing",
-    "Phishing",
-    "Scamming",
-    "Harassment",
-    "Impersonation",
+    "Phishing"
 ]
 DEFAULT_SETTINGS = {
     "window_size": "1024x768",

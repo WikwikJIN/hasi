@@ -1,6 +1,13 @@
-// —————————————  HASI —————————————
-// Hacker account slaying initiative
-// —————— 2026  wikdomain.com ——————
+/*
+       /        /  /|  /-----  |--|
+      /        /  / |  |       |**|
+     /___     /  /--|  \----\  |**|
+    /    \---/  /   |       |  |**|
+   /        /  /    |  -----/  |__|
+
+ Hard to read, like the documentation
+  —————— 2026  wikdomain.com ——————
+*/
 
 console.log("HASI by wik")
 const debug = process.argv.includes('--test')
@@ -14,8 +21,14 @@ const enableUserNameLookup = true; // Enable user lookup via /user/:username end
 const express = require("express");
 const Database = require("better-sqlite3");
 const { getuser } = require('./getId');
-const crypto = require("crypto");
+const crypto = require("node:crypto");
 const bcrypt = require("bcrypt");
+
+if (process.argv.includes('--create-masterkey')) {
+  const masterKey = crypto.randomBytes(32).toString("hex");
+  db.prepare("INSERT INTO apikeys (perms, key) VALUES (?, ?)").run(JSON.stringify(["master"]), masterKey);
+  console.log(`Master API key created (argument): ${masterKey}`);
+}
 
 const SALT_ROUNDS = 10;
 const hash = (value) => bcrypt.hash(value, SALT_ROUNDS);
