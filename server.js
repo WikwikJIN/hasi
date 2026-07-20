@@ -4,14 +4,15 @@
      /___     /  /--|  \----\  |**|
     /    \---/  /   |       |  |**|
    /        /  /    |  -----/  |__|
-
  Hard to read, like the documentation
   —————— 2026  wikdomain.com ——————
 */
 
 console.log("HASI by wik")
+// TODO: Debug mode with special commands/endpoints
 const debug = process.argv.includes('--test')
 if (debug) {console.log("IN DEBUG MODE")}
+if (process.argv.NODE_ENV === 'production' && debug) { console.warn("WARNING: Debug mode enabled on production env. This may expose sensitive information.") }
 
 // SETTINGS
 const PORT = process.env.PORT || 3000; // Port for Express to listen on
@@ -25,12 +26,27 @@ const crypto = require("node:crypto");
 const bcrypt = require("bcrypt");
 const registerListeners = require("./listeners");
 
-if (process.argv.includes('--create-masterkey')) {
-  const masterKey = crypto.randomBytes(32).toString("hex");
-  db.prepare("INSERT INTO apikeys (perms, key) VALUES (?, ?)").run(JSON.stringify(["master"]), masterKey);
-  console.log(`Master API key created (argument): ${masterKey}`);
-}
+// Create express app
+const app = express();
+app.use(express.json());
+// Catch JSON parse errors from body-parser and return a clean 400
+app.use((err, req, res, next) => {
+  if (err && err.type === 'entity.parse.failed') {
+    console.error('Invalid JSON received:', err.message || err);
+    return res.status(400).json({ error: 'Invalid JSON' });
+  }
+  next(err);
+});
 
+let unauthorizedAccess = false;
+if (process.argv.includes('--unauthorized-full-access')) {
+  if (process.argv.NODE_ENV === 'production') {
+    console.error("ERROR: Unauthorized full access mode cannot be enabled in production.");
+    process.exit(1);
+  }
+  unauthorizedAccess = true;
+  console.warn("WARNING: Unauthorized full access mode enabled. This mode allows for all endpoints to be used without API keys.");
+}
 if (process.argv.includes('--create-masterkey')) {
   const masterKey = crypto.randomBytes(32).toString("hex");
   db.prepare("INSERT INTO apikeys (perms, key) VALUES (?, ?)").run(JSON.stringify(["master"]), masterKey);
@@ -50,6 +66,7 @@ const getFlagged = db.prepare("SELECT * FROM flagged WHERE uid = ?");
 const getApiKeys = db.prepare("SELECT * FROM apikeys");
 const markFlagged = db.prepare("UPDATE flagged SET uid = 0, description = '-' WHERE uid = ?");
 const updateFlagged = db.prepare("UPDATE flagged SET description = ? WHERE uid = ?");
+const getBID = db.prepare("SELECT * FROM flagged WHERE id = ?");
 
 const findApiKey = async (key) => {
   if (!key) return null;
@@ -82,10 +99,20 @@ if (!masterExists) {
 }
 
 // Middleware to check API key permissions
-const checkPerms = (requiredPerm) => {
+const checkPerms = (requiredPerm, version = 1) => {
+  let key;
   return async (req, res, next) => {
-    const { key } = req.body;
-    if (!key) return res.status(401).json({ error: "API key is required in the request body." });
+    if (unauthorizedAccess) { next(); };
+    if (version === 1) {
+      // Use legacy key in body for API version 1
+      key = req.body.key;
+      console.log("Checking API key for v1:", key);
+    } else {
+      // For version 2, check the 'x-api-key' header
+      console.log("Checking API key for v2:", req.headers["x-api-key"]);
+      key = req.headers["x-api-key"];
+    }
+    if (!key) return res.status(401).json({ error: "API key is required." });
 
     const apiKeyRow = await findApiKey(key);
     if (!apiKeyRow) return res.status(401).json({ error: "Invalid API key." });
@@ -102,18 +129,6 @@ const checkPerms = (requiredPerm) => {
     }
   };
 };
-
-// Create express app
-const app = express();
-app.use(express.json());
-// Catch JSON parse errors from body-parser and return a clean 400
-app.use((err, req, res, next) => {
-  if (err && err.type === 'entity.parse.failed') {
-    console.error('Invalid JSON received:', err.message || err);
-    return res.status(400).json({ error: 'Invalid JSON' });
-  }
-  next(err);
-});
 
 registerListeners(app, {
   db,
@@ -133,9 +148,30 @@ app.get("/v2/id/:id", async (req, res) => {
   const { id } = req.params;
   const row = getFlagged.get(id);
   if (row) {
-    res.json({ flagged: true, uid: row.uid, description: row.description });
+    res.json({ target: id, flagged: true, bid: row.id, description: row.description });
   } else {
-    res.status(404).json({ flagged: false });
+    res.status(404).json({ target: id, flagged: false });
+  }
+});
+app.get("/v2/banid/:bid", async (req, res) => {
+  const { bid } = req.params;
+  const row = getBID.get(bid);
+  if (row) {
+    res.json({ target: bid, exists: true, uid: row.uid, description: row.description });
+  } else {
+    res.status(404).json({ target: bid, exists: false });
+  }
+});
+app.post("/v2/flag", checkPerms("write", 2), async (req, res) => {
+  const { username, uid, description } = req.body;
+  if (!description) { return res.status(400).json({ target: uid, success: false }); }
+  if (!username && !uid ) { return res.status(400).json({ target: uid, success: false }); }
+  try {
+    insertFlagged.run(uid, description);
+    res.status(201).json({ target: uid, success: true });
+  } catch (e) {
+    console.error("Error inserting flagged user:", e);
+    res.status(500).json({ target: uid, success: false });
   }
 });
 
