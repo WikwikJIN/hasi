@@ -17,7 +17,7 @@ if (process.argv.NODE_ENV === 'production' && debug) { console.warn("WARNING: De
 // SETTINGS
 const PORT = process.env.PORT || 3000; // Port for Express to listen on
 const enableUserNameLookup = true; // Enable user lookup via /user/:username endpoint
-
+const v2Disabed = true; // Disable v2 endpoints if true
 // Import stuff and set up hash functions
 const express = require("express");
 const Database = require("better-sqlite3");
@@ -145,6 +145,7 @@ registerListeners(app, {
 
 // V2 Endpoints
 app.get("/v2/id/:id", async (req, res) => {
+  if (v2Disabed === true) { return res.status(400).json({ error: "V2 Disabled" }); }
   const { id } = req.params;
   const row = getFlagged.get(id);
   if (row) {
@@ -154,6 +155,7 @@ app.get("/v2/id/:id", async (req, res) => {
   }
 });
 app.get("/v2/banid/:bid", async (req, res) => {
+  if (v2Disabed === true) { return res.status(400).json({ error: "V2 Disabled" }); }
   const { bid } = req.params;
   const row = getBID.get(bid);
   if (row) {
@@ -163,10 +165,15 @@ app.get("/v2/banid/:bid", async (req, res) => {
   }
 });
 app.post("/v2/flag", checkPerms("write", 2), async (req, res) => {
+  if (v2Disabed === true) { return res.status(400).json({ error: "V2 Disabled" }); }
   const { username, uid, description } = req.body;
   if (!description) { return res.status(400).json({ target: uid, success: false }); }
   if (!username && !uid ) { return res.status(400).json({ target: uid, success: false }); }
   try {
+      const existing = getFlagged.get(Number(resolvedUid));
+      if (existing && existing.uid && existing.uid !== 0) {
+        return res.status(409).json({ error: "User is already flagged." });
+      }
     insertFlagged.run(uid, description);
     res.status(201).json({ target: uid, success: true });
   } catch (e) {
