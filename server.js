@@ -12,8 +12,8 @@ console.log("HASI by wik")
 // TODO: Debug mode with special commands/endpoints
 const debug = process.argv.includes('--test')
 if (debug) {console.log("IN DEBUG MODE")}
-if (process.argv.NODE_ENV === 'production' && debug) { console.warn("WARNING: Debug mode enabled on production env. This may expose sensitive information.") }
-
+if (process.env.NODE_ENV === 'production' && debug) { console.warn("WARNING: Debug mode enabled on production env. This may expose sensitive information.") }
+console.log(process.argv)
 // SETTINGS
 const PORT = process.env.PORT || 3000; // Port for Express to listen on
 const enableUserNameLookup = true; // Enable user lookup via /user/:username endpoint
@@ -40,7 +40,7 @@ app.use((err, req, res, next) => {
 
 let unauthorizedAccess = false;
 if (process.argv.includes('--unauthorized-full-access')) {
-  if (process.argv.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV === 'production') {
     console.error("ERROR: Unauthorized full access mode cannot be enabled in production.");
     process.exit(1);
   }
