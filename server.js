@@ -13,11 +13,13 @@ console.log("HASI by wik")
 const debug = process.argv.includes('--test')
 if (debug) {console.log("IN DEBUG MODE")}
 if (process.env.NODE_ENV === 'production' && debug) { console.warn("WARNING: Debug mode enabled on production env. This may expose sensitive information.") }
-console.log(process.argv)
+if (debug) { console.log(process.argv) }
+
 // SETTINGS
 const PORT = process.env.PORT || 3000; // Port for Express to listen on
 const enableUserNameLookup = true; // Enable user lookup via /user/:username endpoint
 const v2Disabed = true; // Disable v2 endpoints if true
+
 // Import stuff and set up hash functions
 const express = require("express");
 const Database = require("better-sqlite3");
@@ -38,6 +40,19 @@ app.use((err, req, res, next) => {
   next(err);
 });
 
+// Create database, tables, and prepared statements
+const db = new Database("./database.sqlite");
+db.exec("CREATE TABLE IF NOT EXISTS flagged (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER, description TEXT)");
+db.exec("CREATE TABLE IF NOT EXISTS apikeys (perms TEXT, key TEXT PRIMARY KEY)");
+const insertFlagged = db.prepare("INSERT INTO flagged (uid, description) VALUES (?, ?)");
+const getFlagged = db.prepare("SELECT * FROM flagged WHERE uid = ?");
+const getApiKeys = db.prepare("SELECT * FROM apikeys");
+const markFlagged = db.prepare("UPDATE flagged SET uid = 0, description = '-' WHERE uid = ?");
+const updateFlagged = db.prepare("UPDATE flagged SET description = ? WHERE uid = ?");
+const getBID = db.prepare("SELECT * FROM flagged WHERE id = ?");
+
+
+
 let unauthorizedAccess = false;
 if (process.argv.includes('--unauthorized-full-access')) {
   if (process.env.NODE_ENV === 'production') {
@@ -56,17 +71,6 @@ if (process.argv.includes('--create-masterkey')) {
 const SALT_ROUNDS = 10;
 const hash = (value) => bcrypt.hash(value, SALT_ROUNDS);
 const compareHash = (value, hashed) => bcrypt.compare(value, hashed);
-
-// Create database, tables, and prepared statements
-const db = new Database("./database.sqlite");
-db.exec("CREATE TABLE IF NOT EXISTS flagged (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER, description TEXT)");
-db.exec("CREATE TABLE IF NOT EXISTS apikeys (perms TEXT, key TEXT PRIMARY KEY)");
-const insertFlagged = db.prepare("INSERT INTO flagged (uid, description) VALUES (?, ?)");
-const getFlagged = db.prepare("SELECT * FROM flagged WHERE uid = ?");
-const getApiKeys = db.prepare("SELECT * FROM apikeys");
-const markFlagged = db.prepare("UPDATE flagged SET uid = 0, description = '-' WHERE uid = ?");
-const updateFlagged = db.prepare("UPDATE flagged SET description = ? WHERE uid = ?");
-const getBID = db.prepare("SELECT * FROM flagged WHERE id = ?");
 
 const findApiKey = async (key) => {
   if (!key) return null;
