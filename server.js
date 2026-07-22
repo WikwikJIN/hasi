@@ -64,7 +64,8 @@ if (process.argv.includes('--unauthorized-full-access')) {
 }
 if (process.argv.includes('--create-masterkey')) {
   const masterKey = crypto.randomBytes(32).toString("hex");
-  db.prepare("INSERT INTO apikeys (perms, key) VALUES (?, ?)").run(JSON.stringify(["master"]), masterKey);
+  const hashed = await hash(masterKey);
+  db.prepare("INSERT INTO apikeys (perms, key) VALUES (?, ?)").run(JSON.stringify(["master"]), hashed);
   console.log(`Master API key created (argument): ${masterKey}`);
 }
 
