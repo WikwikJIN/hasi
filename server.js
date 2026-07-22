@@ -11,7 +11,7 @@
 console.log("HASI by wik")
 // TODO: Debug mode with special commands/endpoints
 const debug = process.argv.includes('--test')
-if (debug) {console.log("IN DEBUG MODE")}
+if (debug) { console.log("IN DEBUG MODE") }
 if (process.env.NODE_ENV === 'production' && debug) { console.warn("WARNING: Debug mode enabled on production env. This may expose sensitive information.") }
 if (debug) { console.log(process.argv) }
 
@@ -27,6 +27,7 @@ const { getuser } = require('./getId');
 const crypto = require("node:crypto");
 const bcrypt = require("bcrypt");
 const registerListeners = require("./listeners");
+let wasMasterKeyNotThere = false;
 
 // Create express app
 const app = express();
@@ -51,7 +52,22 @@ const markFlagged = db.prepare("UPDATE flagged SET uid = 0, description = '-' WH
 const updateFlagged = db.prepare("UPDATE flagged SET description = ? WHERE uid = ?");
 const getBID = db.prepare("SELECT * FROM flagged WHERE id = ?");
 
+const SALT_ROUNDS = 10;
+const hash = (value) => bcrypt.hash(value, SALT_ROUNDS);
+const compareHash = (value, hashed) => bcrypt.compare(value, hashed);
+// ! --------------------------- SETUP END --------------------------- ! \\
 
+function newMaster() {
+  const masterKey = crypto.randomBytes(32).toString("hex");
+  hash(masterKey)
+    .then((masterHash) => {
+      db.prepare("INSERT INTO apikeys (perms, key) VALUES (?, ?)").run(JSON.stringify(["master"]), masterHash);
+      console.log(`Master API key created: ${masterKey}`);
+    })
+    .catch((err) => {
+      console.error("Failed to create master API key:", err);
+    });
+}
 
 let unauthorizedAccess = false;
 if (process.argv.includes('--unauthorized-full-access')) {
@@ -62,16 +78,6 @@ if (process.argv.includes('--unauthorized-full-access')) {
   unauthorizedAccess = true;
   console.warn("WARNING: Unauthorized full access mode enabled. This mode allows for all endpoints to be used without API keys.");
 }
-if (process.argv.includes('--create-masterkey')) {
-  const masterKey = crypto.randomBytes(32).toString("hex");
-  const hashed = await hash(masterKey);
-  db.prepare("INSERT INTO apikeys (perms, key) VALUES (?, ?)").run(JSON.stringify(["master"]), hashed);
-  console.log(`Master API key created (argument): ${masterKey}`);
-}
-
-const SALT_ROUNDS = 10;
-const hash = (value) => bcrypt.hash(value, SALT_ROUNDS);
-const compareHash = (value, hashed) => bcrypt.compare(value, hashed);
 
 const findApiKey = async (key) => {
   if (!key) return null;
@@ -92,15 +98,17 @@ const isMasterKey = async (key) => {
 // Check if a master API exists
 const masterExists = db.prepare("SELECT * FROM apikeys WHERE perms LIKE '%master%'").get();
 if (!masterExists) {
-  const masterKey = crypto.randomBytes(32).toString("hex");
-  hash(masterKey)
-    .then((masterHash) => {
-      db.prepare("INSERT INTO apikeys (perms, key) VALUES (?, ?)").run(JSON.stringify(["master"]), masterHash);
-      console.log(`Master API key created: ${masterKey}`);
-    })
-    .catch((err) => {
-      console.error("Failed to create master API key:", err);
-    });
+  console.log("No master API key found, creating...")
+  newMaster();
+  wasMasterKeyNotThere = true;
+}
+
+if (process.argv.includes('--create-masterkey')) {
+  if (wasMasterKeyNotThere) {
+    console.log("Master key was already created at startup, skipping creation.");
+  } else {
+    newMaster();
+  }
 }
 
 // Middleware to check API key permissions
@@ -173,12 +181,12 @@ app.post("/v2/flag", checkPerms("write", 2), async (req, res) => {
   if (v2Disabed === true) { return res.status(400).json({ error: "V2 Disabled" }); }
   const { username, uid, description } = req.body;
   if (!description) { return res.status(400).json({ target: uid, success: false }); }
-  if (!username && !uid ) { return res.status(400).json({ target: uid, success: false }); }
+  if (!username && !uid) { return res.status(400).json({ target: uid, success: false }); }
   try {
-      const existing = getFlagged.get(Number(resolvedUid));
-      if (existing && existing.uid && existing.uid !== 0) {
-        return res.status(409).json({ error: "User is already flagged." });
-      }
+    const existing = getFlagged.get(Number(resolvedUid));
+    if (existing && existing.uid && existing.uid !== 0) {
+      return res.status(409).json({ error: "User is already flagged." });
+    }
     insertFlagged.run(uid, description);
     res.status(201).json({ target: uid, success: true });
   } catch (e) {
