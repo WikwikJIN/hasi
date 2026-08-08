@@ -12,6 +12,7 @@ console.log("HASI by wik")
 // TODO: Debug mode with special commands/endpoints
 const debug = process.argv.includes('--test')
 if (debug) { console.log("IN DEBUG MODE") }
+<<<<<<< HEAD
 if (process.argv.NODE_ENV === 'production' && debug) { console.warn("WARNING: Debug mode enabled on production env. This may expose sensitive information.") }
 
 // SETTINGS
