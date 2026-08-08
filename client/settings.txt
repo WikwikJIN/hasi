@@ -1,3 +1,0 @@
-{
-  "apikey": "75161429cb8d9d71913d8af3fe3a51565657162c70d0aedf9aecc7c124b39e7d"
-}
