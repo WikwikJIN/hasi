@@ -25,7 +25,14 @@ const settings = {
         console.log('API key saved successfully.');
     }
 }
-if (settings.read().apikey === "") {
+let result;
+try {
+    result = settings.read().apikey;
+} catch (err) {
+    console.error("Error reading settings.txt:", err);
+    result = "";
+}
+if (result === "") {
     while (true) {
         const name = await question("Enter your HASI API Key:");
         if (name.trim() === "") {

@@ -23,6 +23,7 @@ const readingNeedsAPIKey = false; // Require API key for user-reading endpoints 
 const enabledApiKeyManagement = true; // Enable API key management endpoints (create, delete, list)
 const enabledUserSessionManagement = true; // Enable the user session system
 // Import stuff and set up hash functions
+require("dotenv").config();
 const express = require("express");
 const Database = require("better-sqlite3");
 const { getuser } = require('./getId');
