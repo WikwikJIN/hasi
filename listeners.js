@@ -1,3 +1,4 @@
+// HASI - V1 Listeners
 const crypto = require("node:crypto");
 
 module.exports = function registerListeners(app, deps) {
@@ -14,7 +15,7 @@ module.exports = function registerListeners(app, deps) {
     hash,
   } = deps;
 
-  app.get("/id/:uid", (req, res) => {
+  app.get("/id/:uid", checkPerms("read"), (req, res) => {
     console.log(`Request from ${req.ip} for UID: ${req.params.uid}`);
     const row = getFlagged.get(req.params.uid);
     if (row) {
@@ -74,7 +75,29 @@ module.exports = function registerListeners(app, deps) {
     }
   });
 
-  app.get("/user/:username", async (req, res) => {
+  app.delete("/flag/user/:username", checkPerms("delete"), async (req, res) => {
+    const { username } = req.params;
+    try {
+      const users = await getuser([username]);
+      if (!users || users.length === 0) {
+        return res.status(404).json({ error: "User not found." });
+      }
+      const uid = users[0].id;
+      const result = markFlagged.run(uid);
+
+      if (result.changes > 0) {
+        res.json({ message: "User marked removed (uid set to 0).", uid });
+        console.log(`✅ User ${username} (ID: ${uid}) marked removed (uid=0) by ${req.ip}`);
+      } else {
+        res.status(404).json({ error: "User not found in flagged list." });
+      }
+    } catch (error) {
+      console.error(`Error unflagging by username ${username}: ${error}`);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/user/:username", checkPerms("read"), async (req, res) => {
     if (!enableUserNameLookup) {
       return res.status(403).json({ message: "User lookup is disabled." });
     }

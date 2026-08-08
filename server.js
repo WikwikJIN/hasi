@@ -2,8 +2,8 @@
        /        /  /|  /-----  |--|
       /        /  / |  |       |**|
      /___     /  /--|  \----\  |**|
-    /    \---/  /   |       |  |**|
-   /        /  /    |  -----/  |__|
+    /    \___/  /   |       |  |**|
+   /        /  /    |  _____/  |__|
  Hard to read, like the documentation
   —————— 2026  wikdomain.com ——————
 */
@@ -19,7 +19,10 @@ if (debug) { console.log(process.argv) }
 const PORT = process.env.PORT || 3000; // Port for Express to listen on
 const enableUserNameLookup = true; // Enable user lookup via /user/:username endpoint
 const v2Disabed = true; // Disable v2 endpoints if true
-
+const readingNeedsAPIKey = false; // Require API key for user-reading endpoints (ex. GET /user/:username)
+// Control ther 2 database management methods.
+const enabledApiKeyManagement = true; // Enable API key management endpoints (create, delete, list)
+const enabledUserSessionManagement = true; // Enable the user session system
 // Import stuff and set up hash functions
 const express = require("express");
 const Database = require("better-sqlite3");
@@ -27,6 +30,7 @@ const { getuser } = require('./getId');
 const crypto = require("node:crypto");
 const bcrypt = require("bcrypt");
 const registerListeners = require("./listeners");
+const registerV2Listeners = require("./listenersv2");
 let wasMasterKeyNotThere = false;
 
 // Create express app
@@ -45,6 +49,23 @@ app.use((err, req, res, next) => {
 const db = new Database("./database.sqlite");
 db.exec("CREATE TABLE IF NOT EXISTS flagged (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER, description TEXT)");
 db.exec("CREATE TABLE IF NOT EXISTS apikeys (perms TEXT, key TEXT PRIMARY KEY)");
+// Session-based setup
+db.exec("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE, display_name TEXT, profile_picture TEXT, perms TEXT, password TEXT, is_banned BOOLEAN DEFAULT 0)");
+const user = {
+  create: db.prepare("INSERT INTO users (username, display_name, profile_picture, perms, password, is_banned) VALUES (?, ?, 'default', ?, ?,0)"),
+  getByUsername: db.prepare("SELECT * FROM users WHERE username = ?"),
+  getById: db.prepare("SELECT * FROM users WHERE id = ?"),
+  update: db.prepare("UPDATE users SET display_name = ?, profile_picture = ?, perms = ?, password = ?, is_banned = ? WHERE id = ?"),
+  delete: db.prepare("DELETE FROM users WHERE id = ?"),
+  list: db.prepare("SELECT * FROM users"),
+  getPassword: db.prepare("SELECT password FROM users WHERE id = ?"),
+  setPassword: db.prepare("UPDATE users SET password = ? WHERE id = ?"),
+  setBanStatus: db.prepare("UPDATE users SET is_banned = ? WHERE id = ?"),
+  getBanStatus: db.prepare("SELECT is_banned FROM users WHERE id = ?"),
+}
+
+
+// Raw and other prepared statements
 const insertFlagged = db.prepare("INSERT INTO flagged (uid, description) VALUES (?, ?)");
 const getFlagged = db.prepare("SELECT * FROM flagged WHERE uid = ?");
 const getApiKeys = db.prepare("SELECT * FROM apikeys");
@@ -56,7 +77,7 @@ const SALT_ROUNDS = 10;
 const hash = (value) => bcrypt.hash(value, SALT_ROUNDS);
 const compareHash = (value, hashed) => bcrypt.compare(value, hashed);
 // ! --------------------------- SETUP END --------------------------- ! \\
-
+function blockV2() { if (v2Disabed === true) { return res.status(400).json({ error: "V2 Disabled" }); }}
 function newMaster() {
   const masterKey = crypto.randomBytes(32).toString("hex");
   hash(masterKey)
@@ -78,7 +99,7 @@ if (process.argv.includes('--unauthorized-full-access')) {
   unauthorizedAccess = true;
   console.warn("WARNING: Unauthorized full access mode enabled. This mode allows for all endpoints to be used without API keys.");
 }
-
+// Pray to God this won't crash servers because of the database scale.
 const findApiKey = async (key) => {
   if (!key) return null;
   const rows = getApiKeys.all();
@@ -105,7 +126,7 @@ if (!masterExists) {
 
 if (process.argv.includes('--create-masterkey')) {
   if (wasMasterKeyNotThere) {
-    console.log("Master key was already created at startup, skipping creation.");
+    console.warn("Master key was already created at startup, skipping creation.");
   } else {
     newMaster();
   }
@@ -115,7 +136,8 @@ if (process.argv.includes('--create-masterkey')) {
 const checkPerms = (requiredPerm, version = 1) => {
   let key;
   return async (req, res, next) => {
-    if (unauthorizedAccess) { next(); };
+    if (!readingNeedsAPIKey) next();
+    if (unauthorizedAccess) next();
     if (version === 1) {
       // Use legacy key in body for API version 1
       key = req.body.key;
@@ -156,43 +178,12 @@ registerListeners(app, {
   hash,
 });
 
-// V2 Endpoints
-app.get("/v2/id/:id", async (req, res) => {
-  if (v2Disabed === true) { return res.status(400).json({ error: "V2 Disabled" }); }
-  const { id } = req.params;
-  const row = getFlagged.get(id);
-  if (row) {
-    res.json({ target: id, flagged: true, bid: row.id, description: row.description });
-  } else {
-    res.status(404).json({ target: id, flagged: false });
-  }
-});
-app.get("/v2/banid/:bid", async (req, res) => {
-  if (v2Disabed === true) { return res.status(400).json({ error: "V2 Disabled" }); }
-  const { bid } = req.params;
-  const row = getBID.get(bid);
-  if (row) {
-    res.json({ target: bid, exists: true, uid: row.uid, description: row.description });
-  } else {
-    res.status(404).json({ target: bid, exists: false });
-  }
-});
-app.post("/v2/flag", checkPerms("write", 2), async (req, res) => {
-  if (v2Disabed === true) { return res.status(400).json({ error: "V2 Disabled" }); }
-  const { username, uid, description } = req.body;
-  if (!description) { return res.status(400).json({ target: uid, success: false }); }
-  if (!username && !uid) { return res.status(400).json({ target: uid, success: false }); }
-  try {
-    const existing = getFlagged.get(Number(resolvedUid));
-    if (existing && existing.uid && existing.uid !== 0) {
-      return res.status(409).json({ error: "User is already flagged." });
-    }
-    insertFlagged.run(uid, description);
-    res.status(201).json({ target: uid, success: true });
-  } catch (e) {
-    console.error("Error inserting flagged user:", e);
-    res.status(500).json({ target: uid, success: false });
-  }
+registerV2Listeners(app, {
+  getFlagged,
+  getBID,
+  insertFlagged,
+  checkPerms,
+  v2Disabed,
 });
 
 // Start listening to accept requests
