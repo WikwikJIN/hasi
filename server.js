@@ -13,7 +13,7 @@ console.log("HASI by wik")
 const debug = process.argv.includes('--test')
 if (debug) { console.log("IN DEBUG MODE") }
 if (process.argv.NODE_ENV === 'production' && debug) { console.warn("WARNING: Debug mode enabled on production env. This may expose sensitive information.") }
-
+require("dotenv").config();
 // SETTINGS
 const PORT = process.env.PORT || 3000; // Port for Express to listen on
 const enableUserNameLookup = true; // Enable user lookup via /user/:username endpoint
@@ -23,7 +23,6 @@ const readingNeedsAPIKey = false; // Require API key for user-reading endpoints 
 const enabledApiKeyManagement = true; // Enable API key management endpoints (create, delete, list)
 const enabledUserSessionManagement = true; // Enable the user session system
 // Import stuff and set up hash functions
-require("dotenv").config();
 const express = require("express");
 const Database = require("better-sqlite3");
 const { getuser } = require('./getId');
