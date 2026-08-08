@@ -12,8 +12,7 @@ console.log("HASI by wik")
 // TODO: Debug mode with special commands/endpoints
 const debug = process.argv.includes('--test')
 if (debug) { console.log("IN DEBUG MODE") }
-if (process.env.NODE_ENV === 'production' && debug) { console.warn("WARNING: Debug mode enabled on production env. This may expose sensitive information.") }
-if (debug) { console.log(process.argv) }
+if (process.argv.NODE_ENV === 'production' && debug) { console.warn("WARNING: Debug mode enabled on production env. This may expose sensitive information.") }
 
 // SETTINGS
 const PORT = process.env.PORT || 3000; // Port for Express to listen on
@@ -45,6 +44,10 @@ app.use((err, req, res, next) => {
   next(err);
 });
 
+const SALT_ROUNDS = 10;
+const hash = (value) => bcrypt.hash(value, SALT_ROUNDS);
+const compareHash = (value, hashed) => bcrypt.compare(value, hashed);
+
 // Create database, tables, and prepared statements
 const db = new Database("./database.sqlite");
 db.exec("CREATE TABLE IF NOT EXISTS flagged (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER, description TEXT)");
@@ -72,10 +75,6 @@ const getApiKeys = db.prepare("SELECT * FROM apikeys");
 const markFlagged = db.prepare("UPDATE flagged SET uid = 0, description = '-' WHERE uid = ?");
 const updateFlagged = db.prepare("UPDATE flagged SET description = ? WHERE uid = ?");
 const getBID = db.prepare("SELECT * FROM flagged WHERE id = ?");
-
-const SALT_ROUNDS = 10;
-const hash = (value) => bcrypt.hash(value, SALT_ROUNDS);
-const compareHash = (value, hashed) => bcrypt.compare(value, hashed);
 // ! --------------------------- SETUP END --------------------------- ! \\
 function blockV2() { if (v2Disabed === true) { return res.status(400).json({ error: "V2 Disabled" }); }}
 function newMaster() {
@@ -92,7 +91,7 @@ function newMaster() {
 
 let unauthorizedAccess = false;
 if (process.argv.includes('--unauthorized-full-access')) {
-  if (process.env.NODE_ENV === 'production') {
+  if (process.argv.NODE_ENV === 'production') {
     console.error("ERROR: Unauthorized full access mode cannot be enabled in production.");
     process.exit(1);
   }
@@ -165,6 +164,7 @@ const checkPerms = (requiredPerm, version = 1) => {
   };
 };
 
+// Load v1 endpoints from listeners.js
 registerListeners(app, {
   db,
   getFlagged,
@@ -188,5 +188,5 @@ registerV2Listeners(app, {
 
 // Start listening to accept requests
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Listening on port ${PORT}`);
 });
