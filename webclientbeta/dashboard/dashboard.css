@@ -1,0 +1,123 @@
+#loading {
+    font-size: 1.5em;
+    text-align: center;
+    margin-top: 20%;
+}
+
+#dashboard {
+    width: 80%;
+    margin: 0 auto;
+    height: 98vh;
+    background-color: #f0f0f00e;
+    border-radius: 10px;
+    display: grid;
+    grid-template-rows: auto 1fr;
+}
+
+header {
+    background-color: #f0f0f005;
+    padding: 6px 12px 6px 12px;
+    border-bottom: 1px solid #ccc;
+    margin: 0;
+    border-radius: 10px 10px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+#config-button {
+    background-color: #c0bfbf;
+    color: rgb(2, 2, 2);
+    border: none;
+    padding: 8px;
+    border-radius: 3px;
+    cursor: pointer;
+}
+#config-button:hover {
+    background-color: #e0d9d9;
+}
+#config-button:active {
+    background-color: #e9e5e5;
+}
+#logout-button {
+    width: 100px;
+    background-color: #ff4d4d;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 3px;
+    cursor: pointer;
+}
+#logout-button:hover {
+    background-color: #f87d7d;
+}
+#extend-button {
+    width: 75px;
+    background-color: #4da0ff;
+    color: white;
+    border: none;
+    padding: 8px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+}
+#extend-button:hover {
+    background-color: #8dc2fd;
+}
+main {
+    padding: 0 10px;
+}
+#dialog {
+    position: absolute;
+    margin-top: 2px;
+    width: 180px;
+    height: 200px;
+    background-color: #141414f3;
+    border-radius: 3px 10px 10px 10px;
+    padding: 3px;
+    z-index: 100;
+}
+#dialog button {
+    display: block;
+    border: none;
+    background: transparent;
+    color: white;
+    margin: 0;
+    border-bottom: solid 1px #eeeaea28;
+    width: 100%;
+    text-align: left;
+    font-size: medium;
+}
+#dialog button:hover {
+    background-color: #c0bfbf11;
+}
+.popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    translate: -50% -50%;
+    background-color: #141414f6;
+    width: 300px;
+    height: 50%;
+    border-radius: 5px;
+    border: solid 2px black;
+    padding: 10px;
+    text-align: center;
+    z-index: 200;
+}
+@media (max-width: 800px) {
+    #dashboard {
+        width: 98%;
+    }
+}
+@media (max-width: 400px) {
+    header {
+        flex-direction: column;
+    }
+    #dialog {
+        width: 208px;
+    }
+}
+@media (min-width: 800px) {
+    .popup {
+        width: 500px;
+    }
+}

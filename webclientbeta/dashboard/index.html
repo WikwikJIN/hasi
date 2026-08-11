@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>HASI Web Client</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="./dashboard.css">
+</head>
+
+<body>
+    <div id="loading">Please wait while the session is being validated...</div>
+    <div id="dashboard" class="hidden">
+        <header>
+            <div>
+                <!-- left -->
+                <p id="welcome-message">Welcome, ...!</p>
+            </div>
+            <div>
+                <!-- right -->
+                <button id="config-button">•••</button>
+                <div id="dialog" class="hidden">
+                    <button>1</button>
+                    <button>2</button>
+                    <button>3</button>
+                    <button>4</button>
+                    <button>5</button>
+                </div>
+                <button id="extend-button">Extend</button>
+                <button id="logout-button">Logout</button>
+            </div>
+        </header>
+        <main>
+            <h1>HASI Dashboard</h1>
+            <p>Welcome to the dashboard!</p>
+        </main>
+        <div class="popup">SONION</div>
+    </div>
+    <script src="./dashboard.js"></script>
+</body>
+
+</html>

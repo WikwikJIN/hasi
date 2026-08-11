@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>HASI Web Client</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="./style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="login hidden">
+        <form>
+            <input value="admin" type="text" id="usernameInput" placeholder="Username">
+            <input value="adminpassword" type="password" id="passwordInput" placeholder="Password">
+            <button type="button" id="getTokenButton">Login</button>
+        </form>
+    </div>
+    <p id="tokenDisplay" class="form-text">Result will appear here</p>
+    <script>
+        const loginDiv = document.querySelector('.login');
+        // Check if a session token exists in localStorage
+        const sessionToken = localStorage.getItem('HASIWEBCLIENT-sessionToken');
+        if (sessionToken) {
+            // If a session token exists, redirect to the dashboard
+            window.location.href = './dashboard/';
+        }
+        loginDiv.classList.remove('hidden');
+        document.getElementById('getTokenButton').addEventListener('click', async () => {
+            const username = document.getElementById('usernameInput').value;
+            const password = document.getElementById('passwordInput').value;
+            const result = document.getElementById('tokenDisplay');
+            result.textContent = 'Fetching token...';
+            result.classList.remove('error');
+            try {
+                let id = await fetch("http://localhost:3000/session/usertoid", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        username: username
+                    })
+                })
+                id = await id.json()
+                let response = await fetch(`http://localhost:3000/session/gettoken/${id.userId}`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        password: password
+                    })
+                })
+                response = await response.json();
+                // Store token in localStorage and redirect
+                result.textContent = 'Done! Redirecting...';
+                localStorage.setItem('HASIWEBCLIENT-sessionToken', response.sessionToken);
+                localStorage.setItem('HASIWEBCLIENT-userId', id.userId);
+                window.location.href = './dashboard/';
+            } catch (error) {
+                console.error('Error:', error);
+                result.textContent = `Error: ${error.message}`;
+                result.classList.add('error');
+            }
+        });
+    </script>
+</body>
+
+</html>

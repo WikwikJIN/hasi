@@ -13,9 +13,10 @@ module.exports = function registerListeners(app, deps) {
     enableUserNameLookup,
     isMasterKey,
     hash,
+    blockV1,
   } = deps;
 
-  app.get("/id/:uid", checkPerms("read"), (req, res) => {
+  app.get("/id/:uid", blockV1, checkPerms("read"), (req, res) => {
     console.log(`Request from ${req.ip} for UID: ${req.params.uid}`);
     const row = getFlagged.get(req.params.uid);
     if (row) {
@@ -27,7 +28,7 @@ module.exports = function registerListeners(app, deps) {
     }
   });
 
-  app.post("/flag", checkPerms("write"), async (req, res) => {
+  app.post("/flag", blockV1, checkPerms("write"), async (req, res) => {
     const { username, uid, description } = req.body;
     if (!description) return res.status(400).json({ error: "description is required." });
     if (!username && !uid) return res.status(400).json({ error: "username or uid is required." });
@@ -63,7 +64,7 @@ module.exports = function registerListeners(app, deps) {
     }
   });
 
-  app.delete("/flag/:uid", checkPerms("delete"), (req, res) => {
+  app.delete("/flag/:uid", blockV1, checkPerms("delete"), (req, res) => {
     const { uid } = req.params;
     const result = markFlagged.run(uid);
 
@@ -75,7 +76,7 @@ module.exports = function registerListeners(app, deps) {
     }
   });
 
-  app.delete("/flag/user/:username", checkPerms("delete"), async (req, res) => {
+  app.delete("/flag/user/:username", blockV1, checkPerms("delete"), async (req, res) => {
     const { username } = req.params;
     try {
       const users = await getuser([username]);
@@ -97,7 +98,7 @@ module.exports = function registerListeners(app, deps) {
     }
   });
 
-  app.get("/user/:username", checkPerms("read"), async (req, res) => {
+  app.get("/user/:username", blockV1, checkPerms("read"), async (req, res) => {
     if (!enableUserNameLookup) {
       return res.status(403).json({ message: "User lookup is disabled." });
     }
@@ -126,12 +127,12 @@ module.exports = function registerListeners(app, deps) {
     }
   });
 
-  app.get("/count", (req, res) => {
+  app.get("/count", blockV1, (req, res) => {
     const count = db.prepare("SELECT count(*) AS count FROM flagged WHERE uid <> 0;").get();
     res.json({ count: count.count });
   });
 
-  app.patch("/flag/:uid", checkPerms("modify"), (req, res) => {
+  app.patch("/flag/:uid", blockV1, checkPerms("modify"), (req, res) => {
     const { uid } = req.params;
     const { description } = req.body;
 
@@ -148,7 +149,7 @@ module.exports = function registerListeners(app, deps) {
     }
   });
 
-  app.post("/apikey", checkPerms("master"), async (req, res) => {
+  app.post("/apikey", blockV1, checkPerms("master"), async (req, res) => {
     const { perms } = req.body;
 
     if (!perms) {
@@ -162,17 +163,17 @@ module.exports = function registerListeners(app, deps) {
     res.json({ message: "API key created successfully.", key });
   });
 
-  app.get("/ismaster", async (req, res) => {
+  app.get("/ismaster", blockV1, async (req, res) => {
     const { key } = req.query;
     const master = await isMasterKey(key);
     res.json({ message: master });
   });
 
-  app.get("/teapot", (req, res) => {
+  app.get("/teapot", blockV1, (req, res) => {
     res.status(200).json({ message: "AVAILABLE OPTIONS, ONE OF THEM ARE VALID: coffee, tea, cocoa, cocacola, 7up, sprite, fanta, blended-glass-with-milk" });
   });
 
-  app.get("/teapot/:drink", (req, res) => {
+  app.get("/teapot/:drink", blockV1, (req, res) => {
     if (req.params.drink !== "tea") {
       res.status(418).json({ message: "I'm a teapot. Please specify a valid drink." });
     } else {
