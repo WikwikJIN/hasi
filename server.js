@@ -1,6 +1,6 @@
 /*
        /        /  /|  /-----  |--|
-      /        /  / |  |       |**|
+      /        /  / |  |       |*.|
      /___     /  /--|  \----\  |**|
     /    \___/  /   |       |  |**|
    /        /  /    |  _____/  |__|
@@ -83,13 +83,14 @@ db.exec(
   "CREATE TABLE IF NOT EXISTS sessions (for_user INTEGER, session_token TEXT PRIMARY KEY, expires_at DATETIME)",
 );
 const user = {
+  tokenttlmin: 10,
   create: db.prepare(
     "INSERT INTO users (username, display_name, profile_picture, perms, password, is_banned) VALUES (?, ?, 'default', ?, ?,0)",
   ),
   getByUsername: db.prepare("SELECT * FROM users WHERE username = ?"),
   getById: db.prepare("SELECT * FROM users WHERE id = ?"),
   update: db.prepare(
-    "UPDATE users SET display_name = ?, profile_picture = ?, perms = ?, password = ?, is_banned = ? WHERE id = ?",
+    "UPDATE users SET username = ?, display_name = ?, profile_picture = ?, perms = ?, password = ?, is_banned = ? WHERE id = ?",
   ),
   delete: db.prepare("DELETE FROM users WHERE id = ?"),
   list: db.prepare("SELECT * FROM users"),
@@ -202,7 +203,7 @@ if (process.argv.includes("--unauthorized-full-access")) {
     "WARNING: Unauthorized full access mode enabled. This mode allows for all endpoints to be used without API keys.",
   );
 }
-// Pray to God this won't crash servers because of the database scale.
+
 const findApiKey = async (key) => {
   if (!key) return null;
   const rows = getApiKeys.all();
@@ -371,7 +372,7 @@ app.post("/session/gettoken/:uid", blockSession, async (req, res) => {
     return res.status(404).json({ success: false, error: "User not found." });
   if (user.getPassword.get(req.params.uid).password === password) {
     const sessionToken = generateRandomKey(32);
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+    const expiresAt = new Date(Date.now() + user.tokenttlmin * 60 * 1000);
     console.log(
       "SESSION: Session token generated for user:",
       req.params.uid,
@@ -388,62 +389,75 @@ app.post("/session/gettoken/:uid", blockSession, async (req, res) => {
     res.status(401).json({ success: false, error: "Invalid credentials." });
   }
 });
-app.post(
-  "/session/usertoid",
-  blockSession,
-  async (req, res) => {
-    console.log(`SESSION: Request from ${req.ip}, asking for id of username: ${req.body.username}`)
-    const { username } = req.body;
-    if (!username)
-      return res
-        .status(400)
-        .json({ success: false, error: "Username is required." });
-    const userRow = user.getByUsername.get(username);
-    if (!userRow)
-      return res.status(404).json({ success: false, error: "User not found." });
-    res.json({ success: true, userId: userRow.id });
-  },
-);
-app.get(
-  "/session/idtouser/:uid",
-  blockSession,
-  async (req, res) => {
-    console.log(`SESSION: request from ${req.ip}, asking for username of id: ${req.params.uid}`)
-    const { uid } = req.params;
-    const userRow = user.getById.get(uid);
-    if (!userRow)
-      return res.status(404).json({ success: false, error: "User not found." });
-    res.json({ success: true, username: userRow.username });
-  }
-);
+app.post("/session/usertoid", blockSession, async (req, res) => {
+  console.log(
+    `SESSION: Request from ${req.ip}, asking for id of username: ${req.body.username}`,
+  );
+  const { username } = req.body;
+  if (!username)
+    return res
+      .status(400)
+      .json({ success: false, error: "Username is required." });
+  const userRow = user.getByUsername.get(username);
+  if (!userRow)
+    return res.status(404).json({ success: false, error: "User not found." });
+  res.json({ success: true, userId: userRow.id });
+});
+app.get("/session/idtouser/:uid", blockSession, async (req, res) => {
+  console.log(
+    `SESSION: request from ${req.ip}, asking for username of id: ${req.params.uid}`,
+  );
+  const { uid } = req.params;
+  const userRow = user.getById.get(uid);
+  if (!userRow)
+    return res.status(404).json({ success: false, error: "User not found." });
+  res.json({ success: true, username: userRow.username });
+});
 app.post(
   "/session/validate",
   blockSession,
   validateSession,
   async (req, res) => {
-    console.log(`SESSION: Request from ${req.ip}, that validated token of: ${req.sessionData.userId}`)
-    res.json({ success: true, userId: req.sessionData.userId, expiresAt: req.sessionData.session.expires_at });
+    console.log(
+      `SESSION: Request from ${req.ip}, that validated token of: ${req.sessionData.userId}`,
+    );
+    res.json({
+      success: true,
+      userId: req.sessionData.userId,
+      expiresAt: req.sessionData.session.expires_at,
+    });
   },
 );
 app.post("/session/extend", blockSession, validateSession, async (req, res) => {
-  console.log(`SESSION: Request from ${req.ip}, that extended token time for user: ${req.sessionData.userId}`)
+  console.log(
+    `SESSION: Request from ${req.ip}, that extended token time for user: ${req.sessionData.userId}`,
+  );
   const { sessionToken } = req.sessionData;
-  const newExpiresAt = new Date(Date.now() + 60 * 60 * 1000); // Extend by 1 hour
-  await user.updateSessionExpiry.run(sessionToken, newExpiresAt.toISOString());
-  res.json({ success: true, expiresAt: newExpiresAt });
+  const newExpiresAt = new Date(Date.now() + user.tokenttlmin * 60 * 1000); // Extend by 1 hour
+  await user.updateSessionExpiry.run(newExpiresAt.toISOString(), sessionToken);
+  res.json({ success: true, expiresAt: newExpiresAt.toISOString() });
 });
-app.post("/session/sessiontime", blockSession, validateSession, async (req, res) => {
-  console.log(`SESSION: Request from ${req.ip}, that got token time for user: ${req.sessionData.userId}`)
-  const { sessionToken } = req.sessionData;
-  const expiresAt = user.getSession.get(sessionToken);
-  res.json({ success: true, expiresAt: expiresAt.expires_at });
-});
+app.post(
+  "/session/sessiontime",
+  blockSession,
+  validateSession,
+  async (req, res) => {
+    console.log(
+      `SESSION: Request from ${req.ip}, that got token time for user: ${req.sessionData.userId}`,
+    );
+    const { sessionToken } = req.sessionData;
+    const expiresAt = user.getSession.get(sessionToken);
+    res.json({ success: true, expiresAt: expiresAt.expires_at });
+  },
+);
 app.post(
   "/session/deletecurrent",
   blockSession,
   validateSession,
   async (req, res) => {
-    console.log(`SESSION: Request from ${req.ip}, that destroyed token of user: ${req.sessionData.userId}`)
+    console.log(
+      `SESSION: Request from ${req.ip}, that destroyed token of user: ${req.sessionData.userId}`,
+    );
     const { sessionToken, userId } = req.sessionData;
 
     await user.deleteSession.run(sessionToken);
@@ -460,77 +474,97 @@ app.post(
   blockSession,
   validateSession,
   async (req, res) => {
-    console.log(`SESSION: Request from ${req.ip}, that deleted all tokens of user: ${req.sessionData.userId}`)
+    console.log(
+      `SESSION: Request from ${req.ip}, that deleted all tokens of user: ${req.sessionData.userId}`,
+    );
     const { userId } = req.sessionData;
     await user.deleteAllSessionsForUser.run(userId);
     res.json({ success: true, message: "All sessions deleted." });
   },
 );
 app.post(
-  "/session/account/:action",
+  "/session/change/",
   blockSession,
   validateSession,
   async (req, res) => {
-    console.log(`SESSION: Request from ${req.ip}, that made action: ${req.params.action}`)
-    const { action } = req.params;
+    console.log(`SESSION: Request from ${req.ip}, that made changes to stats.`);
     const { userId } = req.sessionData;
-
-    switch (action) {
-      case "changepfp":
-        const { profilePicture } = req.body;
-        if (!profilePicture)
-          return res
-            .status(400)
-            .json({ success: false, error: "Profile picture is required." });
-        const currentUser = user.getById.get(userId);
-        await user.update.run(
-          currentUser.display_name,
-          profilePicture,
-          currentUser.perms,
-          currentUser.password,
-          currentUser.is_banned,
-          userId,
-        );
-        res.json({ success: true, message: "Profile picture updated." });
-        break;
-      case "changedisplayname":
-        const { displayName } = req.body;
-        if (!displayName)
-          return res
-            .status(400)
-            .json({ success: false, error: "Display name is required" });
-        const userForName = user.getById.get(userId);
-        if (userForName.is_banned === 1)
-          return res.status(403).json({ success: false, error: "Banned users cannot update their display name." });
-        await user.update.run(
-          displayName,
-          userForName.profile_picture,
-          userForName.perms,
-          userForName.password,
-          userForName.is_banned,
-          userId,
-        );
-        res.json({ success: true, message: "Display name updated." });
-        break;
-      default:
-        res.status(400).json({ success: false, error: "Invalid action." });
+    const row = user.getById.get(userId);
+    let {
+      username,
+      display_name,
+      profile_picture,
+      perms,
+      password,
+      is_banned,
+    } = row;
+    if (req.body.username) {
+      const row2 = user.getByUsername.get(req.body.username);
+      if (row2 && row2.id !== row.id) {
+        return res
+          .status(409)
+          .json({ success: false, message: "Username conflict" });
+      }
+      if (/[^A-Za-z0-9]/.test(req.body.username)) {
+        return res
+          .status(200)
+          .json({ success: false, message: "Bad username" });
+      } else {
+        username = req.body.username;
+      }
+    }
+    if (req.body.displayName) {
+      if (req.body.displayName.length > 25 || req.body.displayName.length < 3) {
+        console.log('name: ' + req.body.displayName)
+        return res
+          .status(400)
+          .json({ success: false, message: "Bad display name" });
+      } else {
+        display_name = req.body.displayName;
+      }
+    }
+    if (req.body.profilePicture) {
+      profile_picture = req.body.profilePicture;
+    }
+    try {
+      user.update.run(
+        username,
+        display_name,
+        profile_picture,
+        perms,
+        password,
+        is_banned,
+        req.sessionData.userId
+      );
+      return res.status(200).json({ success: true, message: "Applied." });
+    } catch (err) {
+      console.error(`Failed to apply user(${userId}) settings: ${err}`);
+      return res
+        .status(500)
+        .json({ success: false, message: "Server-side error" });
     }
   },
 );
-app.post("/session/mystats", blockSession, validateSession, async (req, res) => {
-  const { userId } = req.sessionData;
-  const userRow = user.getById.get(userId);
-  res.json({
-    success: true,
-    userId: userRow.id,
-    username: userRow.username,
-    displayName: userRow.display_name,
-    profilePicture: userRow.profile_picture,
-    perms: JSON.parse(userRow.perms),
-    isBanned: userRow.is_banned,
-  });
-});
+app.post(
+  "/session/mystats",
+  blockSession,
+  validateSession,
+  async (req, res) => {
+    const { userId } = req.sessionData;
+    const userRow = user.getById.get(userId);
+    res.json({
+      success: true,
+      userId: userRow.id,
+      username: userRow.username,
+      displayName: userRow.display_name,
+      profilePicture: userRow.profile_picture,
+      perms: JSON.parse(userRow.perms),
+      isBanned: userRow.is_banned,
+    });
+  },
+);
 setInterval(() => {
+  console.log("SESSION: Deleting expired sessions");
   const now = new Date().toISOString();
   user.deleteExpiredSessions.run(now);
 }, 60000); // Run every 60 seconds

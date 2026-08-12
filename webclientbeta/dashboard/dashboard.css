@@ -50,6 +50,9 @@ header {
 #logout-button:hover {
     background-color: #f87d7d;
 }
+#logout-button:active {
+    background-color: #faa2a2;
+}
 #extend-button {
     width: 75px;
     background-color: #4da0ff;
@@ -61,6 +64,9 @@ header {
 }
 #extend-button:hover {
     background-color: #8dc2fd;
+}
+#extend-button:active {
+    background-color: #a2d7fa;
 }
 main {
     padding: 0 10px;
@@ -74,6 +80,7 @@ main {
     border-radius: 3px 10px 10px 10px;
     padding: 3px;
     z-index: 100;
+    margin-top: 35px;
 }
 #dialog button {
     display: block;
@@ -85,6 +92,30 @@ main {
     width: 100%;
     text-align: left;
     font-size: medium;
+}
+#logout-popup-confirmT {
+    width: 75px;
+    background-color: #ff4d4d;
+    color: white;
+    border: none;
+    padding: 8px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+}
+#logout-popup-confirmF {
+    width: 75px;
+    background-color: #4da0ff;
+    color: white;
+    border: none;
+    padding: 8px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+}
+#logout-popup-confirmF:hover {
+    background-color: #6cb0fd;
+}
+#logout-popup-confirmT:hover {
+    background-color: #fd716c;
 }
 #dialog button:hover {
     background-color: #c0bfbf11;
@@ -102,6 +133,46 @@ main {
     padding: 10px;
     text-align: center;
     z-index: 200;
+    min-height: fit-content;
+}
+.small {
+    width: 260px;
+    height: 120px;
+}
+.medium {
+    height: 210px;
+    width: 320px;
+}
+#logout-popup {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+#logout-popup p {
+    margin-top: 0;
+}
+#welcome-message {
+    display: block;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: #f5f5f5;
+    margin-bottom: 7px;
+}
+
+#session-time {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    color: #f7f4f4;
+    background: rgba(12, 10, 0, 0.12);
+    border: 1px solid rgba(154, 211, 255, 0.35);
+    border-radius: 4px;
+    padding: 6px 10px;
+    text-transform: uppercase;
 }
 @media (max-width: 800px) {
     #dashboard {
@@ -117,7 +188,46 @@ main {
     }
 }
 @media (min-width: 800px) {
-    .popup {
+    .large {
         width: 500px;
+        min-width: 300px;
     }
+    .medium {
+        width: 230px;
+    }
+    .small {
+        width: 350px;
+        height: 150px;
+    }
+}
+.hidden {
+    display: none !important;
+}
+small {
+    display: block;
+    color: gray;
+}
+.popup input {
+    width: 80%;
+    height: 30px;
+    background: transparent;
+    border: dashed white 1px;
+    border-radius: 5px;
+    color: white;
+}
+.popup input::placeholder {
+    text-align: center;
+}
+.red {
+    color: red;
+}
+.popup button {
+    width: 75px;
+    background-color: #085808;
+    color: white;
+    border: none;
+    padding: 8px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    margin-top: 20px;
 }

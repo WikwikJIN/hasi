@@ -5,12 +5,12 @@
     <meta charset="UTF-8">
     <title>HASI Web Client</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="./dashboard.css">
+    <link rel="stylesheet" href="../style.css">
 </head>
 
 <body>
@@ -19,17 +19,18 @@
         <header>
             <div>
                 <!-- left -->
-                <p id="welcome-message">Welcome, ...!</p>
+                <span id="welcome-message">Welcome, ...!</span>
+                <span id="session-time">Session time: ...</span>
             </div>
-            <div>
+            <div style="display: flex; gap: 10px;">
                 <!-- right -->
-                <button id="config-button">•••</button>
+                <div
+                    style="display: flex; align-items: center; gap: 10px; background-color: rgba(181, 184, 184, 0.26); padding-left: 10px; border-radius: 3px;">
+                    <span id="username">...</span>
+                    <button id="config-button">•••</button>
+                </div>
                 <div id="dialog" class="hidden">
-                    <button>1</button>
-                    <button>2</button>
-                    <button>3</button>
-                    <button>4</button>
-                    <button>5</button>
+                    <button id="dialog-account">Account settings/stats</button>
                 </div>
                 <button id="extend-button">Extend</button>
                 <button id="logout-button">Logout</button>
@@ -39,7 +40,27 @@
             <h1>HASI Dashboard</h1>
             <p>Welcome to the dashboard!</p>
         </main>
-        <div class="popup">SONION</div>
+        <div id="logout-popup" class="popup small hidden">
+            <p>Are you sure?</p>
+            <div>
+                <button id="logout-popup-confirmT">Log Out</button>
+                <button id="logout-popup-confirmF">Cancel</button>
+            </div>
+        </div>
+        <div id="account-popup" class="popup large hidden">
+            <p>Account</p>
+            <p id="uid">ID: ...</p>
+            <small>Username</small>
+            <input id="account-popup-username" placeholder="Username..." type="text">
+            <small id="account-popup-username-spaces">can only contain A-Z, a-z, 0-9</small>
+            <small id="account-popup-username-chars">3-20 chars</small>
+            <br>
+            <small>Display name</small>
+            <input id="account-popup-displayname" placeholder="Display name" type="text">
+            <small id="account-popup-displayname-chars">3-25 chars</small>
+            <button id="account-popup-apply">APPLY</button>
+            <button id="account-popup-cancel" style="background-color: red;">CLOSE</button>
+        </div>
     </div>
     <script src="./dashboard.js"></script>
 </body>
