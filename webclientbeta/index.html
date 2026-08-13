@@ -37,6 +37,14 @@
             result.textContent = 'Fetching token...';
             result.classList.remove('error');
             try {
+                // Validate inputs
+                if (!username || !password) {
+                    result.textContent = 'Error: Username and password are required';
+                    result.classList.add('error');
+                    return;
+                }
+
+                // Get user ID from username
                 let id = await fetch("http://localhost:3000/session/usertoid", {
                     method: "POST",
                     headers: {
@@ -47,6 +55,15 @@
                     })
                 })
                 id = await id.json()
+
+                // Check if user was found
+                if (!id.success || !id.userId) {
+                    result.textContent = `Error: ${id.error || 'User not found'}`;
+                    result.classList.add('error');
+                    return;
+                }
+
+                // Get session token
                 let response = await fetch(`http://localhost:3000/session/gettoken/${id.userId}`, {
                     method: "POST",
                     headers: {
@@ -57,8 +74,17 @@
                     })
                 })
                 response = await response.json();
+
+                // Check if login was successful
+                if (!response.success || !response.sessionToken) {
+                    result.textContent = `Error: ${response.error || 'Login failed'}`;
+                    result.classList.add('error');
+                    return;
+                }
+
                 // Store token in localStorage and redirect
                 result.textContent = 'Done! Redirecting...';
+                result.classList.remove('error');
                 localStorage.setItem('HASIWEBCLIENT-sessionToken', response.sessionToken);
                 localStorage.setItem('HASIWEBCLIENT-userId', id.userId);
                 window.location.href = './dashboard/';

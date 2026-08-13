@@ -166,7 +166,7 @@ main {
     align-items: center;
     font-size: 0.82rem;
     font-weight: 600;
-    letter-spacing: 0.03em;
+
     color: #f7f4f4;
     background: rgba(12, 10, 0, 0.12);
     border: 1px solid rgba(154, 211, 255, 0.35);
@@ -220,6 +220,10 @@ small {
 }
 .red {
     color: red;
+    text-decoration: wavy underline red;
+}
+.underline {
+    text-decoration: underline red;
 }
 .popup button {
     width: 75px;

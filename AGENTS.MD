@@ -1,1 +1,9 @@
-Any python/node test files (like testing a server's functionality) should be done in the `__agenttests__` folder. If it does not exist, create it in the root of the project. The `__agenttests__` folder is ignored by git and will not be published to npm.
+Any python/node test files (like testing a server's functionality) should be done in the `__agenttests__` folder. If it does not exist, create it in the root of the project. The `__agenttests__` folder is ignored by git and will not be published to npm. Only Python and Node.js code should be run. Node.js first. If a test **needs** a different language, tell the user if you can create it.
+In the WebUI, Please *do not* use alert() or confirm() for user interaction. Instead, use the provided popup dialogs, and highlight any invalid input. If you need to add a new popup dialog, please create a new HTML file in the `webclientbeta/dashboard` folder and include it in `index.html`. Then, add the necessary JavaScript code to handle the dialog's functionality in `dashboard.js`.
+In the WebUI Dashboard, awlays use grayscale colors, and bright colored buttons with :hover and :active to make them a little bit brighter. The background should be a dark gray, and the text should be white.
+Also in the WebUI Dashboard, please use the provided `dashboard.css` file for styling. If you need to add new styles, please add them to this file. Do not create new CSS files unless absolutely necessary. Do not use the following CSS:
+```css
+letter-spacing: ...;
+text-transform: ...;
+```
+Do not update the `admin_gui.py` file since it is deprecated. Instead, use the `webclientbeta` and `client`(HASI CLI) folder for all WebUI functionality. If you need to add new WebUI functionality, please create a popup dialog, unless the user told you to do something else, ex. a new page, or is really necessary(Ask user first.)

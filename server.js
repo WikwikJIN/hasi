@@ -563,6 +563,29 @@ app.post(
     });
   },
 );
+app.post(
+  "/session/resetpassword",
+  blockSession,
+  validateSession,
+  async (req, res) => {
+    const { userId } = req.sessionData;
+    const { oldPassword, newPassword } = req.body;
+    const userRow = user.getById.get(userId);
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({ success: false, error: "Both old and new passwords are required." });
+    }
+    if (newPassword.length < 8 || newPassword.length > 500) {
+      return res.status(400).json({ success: false, error: "New password must be 8-500 characters long." });
+    }
+    const hashedOldPassword = cryptoHash(oldPassword);
+    if (hashedOldPassword !== userRow.password) {
+      return res.status(401).json({ success: false, error: "Old password is incorrect." });
+    }
+    const hashedNewPassword = cryptoHash(newPassword);
+    user.setPassword.run(hashedNewPassword, userId);
+    return res.status(200).json({ success: true, message: "Password updated successfully." });
+  }
+);
 setInterval(() => {
   console.log("SESSION: Deleting expired sessions");
   const now = new Date().toISOString();
