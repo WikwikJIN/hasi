@@ -1,0 +1,53 @@
+/* Shared light theme overrides. Keep variable names generic so the same UI can switch themes easily. */
+:root {
+    --primary-color: #0a0a0a;
+    --primary-color-1: #010101;
+    --secondary-color: #bebaba;
+    --secondary-color-1: #b0b0b0;
+    --secondary-color-2: #909090;
+    --error-color: red;
+
+    --button-yes-bg: #ff4d4d;
+    --button-yes-hover: #d16969;
+    --button-yes-active: #a56a6a;
+
+    --button-no-bg: #4da0ff;
+    --button-no-hover: #7babe2;
+    --button-no-active: #769db8;
+
+    --button-config-bg: #a7a4a4;
+    --button-config-text: rgb(5, 5, 5);
+    --button-config-hover: #e0d9d9;
+    --button-config-active: #e9e5e5;
+
+    --panel-bg: #f0f0f0f5;
+    --header-bg: #0505051c;
+    --border-muted: #07070733;
+
+    --status-bg: #1616163f;
+    --status-border-color: rgb(4, 4, 240);
+    --warn-border-color: orange;
+
+    --dialog-bg: #ece9e9c9;
+    --dialog-btn-border: #0c0c0c28;
+    --dialog-btn-hover-bg: #14131311;
+    --popup-bg: #e0dedee5;
+
+    --border-dark: rgb(211, 207, 207);
+    --border-light: #0e0d0d;
+    --text-light: #0f0f0f;
+
+    --session-time-text: #0e0d0d;
+    --session-time-bg: rgba(207, 207, 205, 0.685);
+    --session-time-border: rgba(154, 211, 255, 0.35);
+
+    --text-muted: gray;
+    --white: #050505;
+    --button-white: white;
+
+    --popup-button-bg: #15bb15;
+}
+
+.login-body {
+    background-color: #e9e9e9;
+}

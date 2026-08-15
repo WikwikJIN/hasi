@@ -1,20 +1,30 @@
 # HASI
- hacker account slaying initiative
- Inpired by Ruben Sim's EASI, but for hackers instead of p0rn addicts and also uses sqlite instead of mongodb.
-## Intallation / usage
-There are 3 parts of the project:
+ Inpired by Ruben Sim's EASI, HASI is a Roblox user flagging system that allows you to flag users for various reasons, and then check if a user is flagged or not. The system is made up of a Node.js server, a Roblox script, and a Python admin panel. The server uses an SQLite database to store the flagged users and their descriptions. The Roblox script is used to check if a user is flagged or not, and the Python admin panel is used to manage the flagged users.
+## Installation / usage
+There are multiple parts of the project:
 |File|Usage|
 |----|-----|
-|admin-gui.py|A vibecoded admin panel made in Python that uses PySimpleGUI|
+|admin-gui.py|[DEPRECATED, use webclientbeta or CLI (`/client/`)] A vibecoded admin panel made in Python that uses PySimpleGUI|
 |check.lua|The roblox script itself, that you put in serverscriptservice, it maybe will work with the new """"privacy"""" update, But i just told AI to not use the direct id grabbing and get it from the username since i only know JS|
-|Everything else|The core Node.js server, runs at port 3000 and is not made by AI.|
+|/client/|A command line interface that allows you to manage the flagged users with API keys, and check if a user is flagged or not. It uses the server's API to communicate with the server.|
+|/webclientbeta/|A web client that allows you to manage the flagged users with username+passwords, and check if a user is flagged or not. It uses the server's session system to communicate with the server.|
+|Everything else|The core Node.js server|
 
 ## HOW TO START THE SERVER
 1. Install Node.js if you haven't already.
 2. Navigate to the server directory.
 3. Run `npm install` to install dependencies.
 4. Run `npm start` to start the server.
+## SESSION SYSTEM
+### The session system uses short-time tokens, and username+passwords instead of API keys. The client folder is located at: `/webclientbeta/`
+### SETTING UP THE SESSION SYSTEM
+1. Navigate to the `/webclientbeta/` directory.
+2. Change the `config.json` file to set the server URL.
+3. Make sure the HASI server is running.
+4. Open the `index.html` file in a web browser thru ex. Live Server, it won't work directly.
+5. By default, the username is `admin` and the password is `adminpassword`. You can change this in the dashboard after logging in. The password is hashed and stored in the database, so make sure to change it to something secure.
 
+# ADVANCED USAGE
 ## HOW TO USE THE API
 NOTE: The database is autocreated when the server starts
 ### GETTING AN USERNAME/ID

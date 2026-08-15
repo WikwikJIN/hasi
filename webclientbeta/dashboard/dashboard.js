@@ -1,6 +1,8 @@
 // Load all necessary elements from the DOM
+// The amount of elements here is making me suffer.
 const sessionToken = localStorage.getItem("HASIWEBCLIENT-sessionToken");
 const userId = localStorage.getItem("HASIWEBCLIENT-userId");
+const result = document.getElementById("loading");
 const configButton = document.getElementById("config-button");
 const configDialog = document.getElementById("dialog");
 const extendButton = document.getElementById("extend-button");
@@ -30,7 +32,105 @@ const resetPasswordNewChars = document.getElementById("reset-password-popup-new-
 const resetPasswordConfirmMatch = document.getElementById("reset-password-popup-confirm-match");
 const resetPasswordResult = document.getElementById("reset-password-popup-result");
 const accountPopupResult = document.getElementById("account-popup-result");
+const statusBanned = document.getElementById("status-banned");
+const dialogSettings = document.getElementById("dialog-settings");
+const settingsPopup = document.getElementById("settings-popup");
+const settingsPopupApply = document.getElementById("settings-popup-apply");
+const settingsPopupCancel = document.getElementById("settings-popup-cancel");
+const colorSchemeSelect = document.getElementById("color-scheme-select");
+const UserMTabsAdd = document.getElementById("main-um-tabs-add");
+const UserMTabsMod = document.getElementById("main-um-tabs-mod");
+function clearUserM() {
+  UserMTabsAdd.classList.remove("active");
+  UserMTabsMod.classList.remove("active");
+}
+UserMTabsAdd.addEventListener("click", () => {
+  clearUserM();
+  UserMTabsAdd.classList.add("active");
+});
+UserMTabsMod.addEventListener("click", () => {
+  clearUserM();
+  UserMTabsMod.classList.add("active");
+});
+function logOut() {
+  // Remove the session token and user ID from localStorage
+  localStorage.removeItem("HASIWEBCLIENT-sessionToken");
+  localStorage.removeItem("HASIWEBCLIENT-userId");
+  // Destroy the session on the server side
+  fetch(`${window.SERVER_URL}/session/deletecurrent`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ sessionToken: sessionToken, userId: userId }),
+  });
+  // Redirect to the login page no matter what happens with the server request
+  window.location.href = "../";
+}
+let user;
 verifySession();
+function applyUserData() {
+  document.getElementById("welcome-message").textContent =
+    `Welcome, ${user.displayName}!`;
+  document.getElementById("account-popup-displayname").value =
+    user.displayName;
+  document.getElementById("account-popup-username").value =
+    user.username;
+  document.getElementById("username").textContent =
+    user.displayName;
+  document.getElementById("uid").textContent =
+    `ID: ${user.userId}`;
+  if (user.isBanned === 1) { statusBanned.classList.remove("hidden") }
+}
+dialogSettings.addEventListener("click", () => {
+  settingsPopup.classList.remove("hidden");
+  configDialog.classList.add("hidden");
+});
+settingsPopupCancel.addEventListener("click", () => {
+  settingsPopup.classList.add("hidden");
+});
+settingsPopupApply.addEventListener("click", () => {
+  localStorage.setItem("HASIWEBCLIENT-SETTINGS-forceFullRatio", document.getElementById("settings-popup-forcefullratio").checked);
+  localStorage.setItem("HASIWEBCLIENT-SETTINGS-colorScheme", colorSchemeSelect.value);
+  updateSettings();
+});
+function loadSettings() {
+  const forceFullRatio = localStorage.getItem("HASIWEBCLIENT-SETTINGS-forceFullRatio") === "true";
+  const colorScheme = localStorage.getItem("HASIWEBCLIENT-SETTINGS-colorScheme") || "auto";
+  document.getElementById("settings-popup-forcefullratio").checked = forceFullRatio;
+  colorSchemeSelect.value = colorScheme;
+  updateSettings();
+}
+function updateSettings() {
+  const forceFullRatio = localStorage.getItem("HASIWEBCLIENT-SETTINGS-forceFullRatio") === "true";
+  const colorScheme = localStorage.getItem("HASIWEBCLIENT-SETTINGS-colorScheme") || "auto";
+  if (forceFullRatio) {
+    document.getElementById("dashboard").classList.add("settingsforcefullratio");
+  } else {
+    document.getElementById("dashboard").classList.remove("settingsforcefullratio");
+  }
+  applyColorScheme(colorScheme);
+}
+
+function applyColorScheme(scheme) {
+  let theme = scheme;
+  if (scheme === "auto") {
+    theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+
+  const stylesheetLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"]'));
+  const isLightTheme = theme === "light";
+
+  stylesheetLinks.forEach((link) => {
+    const href = (link.getAttribute("href") || "").toLowerCase();
+    if (href.includes("darkmode.css")) {
+      link.disabled = isLightTheme;
+    }
+    if (href.includes("lightmode.css")) {
+      link.disabled = !isLightTheme;
+    }
+  });
+}
 accountPopupCancel.addEventListener("click", () => {
   accountPopup.classList.add("hidden");
 });
@@ -110,7 +210,7 @@ resetPasswordReset.addEventListener("click", () => {
 
   resetPasswordReset.textContent = "Wait...";
   resetPasswordResult.textContent = "Resetting password...";
-  fetch("http://localhost:3000/session/resetpassword", {
+  fetch(`${window.SERVER_URL}/session/resetpassword`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -170,7 +270,7 @@ accountPopupApply.addEventListener("click", () => {
     highlightBad();
     return;
   }
-  return fetch("http://localhost:3000/session/change/", {
+  return fetch(`${window.SERVER_URL}/session/change/`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -226,24 +326,9 @@ dialogResetPassword.addEventListener("click", () => {
   resetPasswordPopup.classList.remove("hidden");
   configDialog.classList.add("hidden");
 });
-function logOut() {
-  // Remove the session token and user ID from localStorage
-  localStorage.removeItem("HASIWEBCLIENT-sessionToken");
-  localStorage.removeItem("HASIWEBCLIENT-userId");
-  // Destroy the session on the server side
-  fetch("http://localhost:3000/session/deletecurrent", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ sessionToken: sessionToken, userId: userId }),
-  });
-  // Redirect to the login page
-  window.location.href = "../";
-}
 function extendSessionTime() {
   extendButton.textContent = "Wait..."
-  fetch("http://localhost:3000/session/extend/", {
+  fetch(`${window.SERVER_URL}/session/extend/`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -274,7 +359,7 @@ function extendSessionTime() {
     });
 }
 function getSessionTime() {
-  return fetch("http://localhost:3000/session/sessiontime/", {
+  return fetch(`${window.SERVER_URL}/session/sessiontime/`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -290,15 +375,24 @@ function getSessionTime() {
       return;
     });
 }
-function verifySession() {
+async function verifySession() {
   if (!sessionToken || !userId) {
-    // If no session token or user ID exists, destroy old data and redirect to the login page
-    localStorage.removeItem("HASIWEBCLIENT-sessionToken");
-    localStorage.removeItem("HASIWEBCLIENT-userId");
-    window.location.href = "../index.html";
+    // If no session token or user ID exists, log out
+    logOut();
   } else {
+    const response = await fetch('/config.json');
+    const config = await response.json();
+    if (!config.server_url) {
+      console.error('Error loading config:', error);
+      result.textContent = 'Error: Failed to load config.json. Please ensure the file exists and is accessible.';
+      throw new Error('server_url is missing in config.json');
+    }
+    console.log('Config loaded:', config.server_url);
+    window.SERVER_URL = config.server_url;
     // If a session token exists, validate it with the server
-    fetch("http://localhost:3000/session/validate", {
+    loadSettings();
+
+    fetch(`${window.SERVER_URL}/session/validate`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -309,7 +403,7 @@ function verifySession() {
       .then((data) => {
         if (data.success) {
           // If the session is valid, show the dashboard
-          fetch("http://localhost:3000/session/mystats", {
+          fetch(`${window.SERVER_URL}/session/mystats`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -321,33 +415,23 @@ function verifySession() {
           })
             .then((response) => response.json())
             .then((userdata) => {
-              document.getElementById("welcome-message").textContent =
-                `Welcome, ${userdata.displayName}!`;
-              document.getElementById("account-popup-displayname").value =
-                userdata.displayName;
-              document.getElementById("account-popup-username").value =
-                userdata.username;
-              document.getElementById("username").textContent =
-                userdata.displayName;
-              document.getElementById("uid").textContent =
-                `ID: ${userdata.userId}`;
+              // Before showing the dashboard, apply the user data to the page
+              user = userdata;
+              applyUserData();
             })
             .then(() => {
               document.getElementById("loading").classList.add("hidden");
               document.getElementById("dashboard").classList.remove("hidden");
             })
         } else {
-          // If the session is invalid, remove the token and redirect to login
-          localStorage.removeItem("HASIWEBCLIENT-sessionToken");
-          localStorage.removeItem("HASIWEBCLIENT-userId");
-          window.location.href = "../";
+          // If the session is invalid, log out
+          logOut();
         }
       })
       .catch((error) => {
         console.error("Error validating session:", error);
-        localStorage.removeItem("HASIWEBCLIENT-sessionToken");
-        localStorage.removeItem("HASIWEBCLIENT-userId");
-        window.location.href = "../";
+        // If there's an error validating the session, log out
+        logOut();
       });
   }
 }
@@ -415,7 +499,7 @@ accountPopupDisplayName.addEventListener("input", () => {
     accountPopupDisplayName.value.length < 3
   ) {
     accountPopupDisplayNameChars.classList.add("red");
-    blockDisplayName = false;
+    blockDisplayName = true;
   } else {
     accountPopupDisplayNameChars.classList.remove("red");
   }

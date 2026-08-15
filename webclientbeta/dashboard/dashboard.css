@@ -1,164 +1,290 @@
+body {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    color: var(--primary-color);
+    background-color: var(--secondary-color);
+    font-family: "Montserrat", sans-serif;
+    font-weight: 300;
+}
+
+.error {
+    color: var(--error-color);
+    text-shadow: 0 0 7px var(--error-color)
+}
+
+button {
+    font-family: "Montserrat", sans-serif;
+}
+
 #loading {
     font-size: 1.5em;
     text-align: center;
     margin-top: 20%;
 }
 
+#dashboard.settingsforcefullratio {
+    width: 98% !important;
+}
+
 #dashboard {
     width: 80%;
     margin: 0 auto;
     height: 98vh;
-    background-color: #f0f0f00e;
+    background-color: var(--panel-bg);
     border-radius: 10px;
     display: grid;
     grid-template-rows: auto 1fr;
 }
 
 header {
-    background-color: #f0f0f005;
+    background-color: var(--header-bg);
     padding: 6px 12px 6px 12px;
-    border-bottom: 1px solid #ccc;
+    border-bottom: 1px solid var(--border-muted);
     margin: 0;
     border-radius: 10px 10px 0 0;
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
+
 #config-button {
-    background-color: #c0bfbf;
-    color: rgb(2, 2, 2);
+    background-color: var(--button-config-bg);
+    color: var(--button-config-text);
     border: none;
     padding: 8px;
     border-radius: 3px;
     cursor: pointer;
 }
+
 #config-button:hover {
-    background-color: #e0d9d9;
+    background-color: var(--button-config-hover);
 }
+
 #config-button:active {
-    background-color: #e9e5e5;
+    background-color: var(--button-config-active);
 }
+
 #logout-button {
     width: 100px;
-    background-color: #ff4d4d;
-    color: white;
+    background-color: var(--button-yes-bg);
+    color: var(--button-white);
     border: none;
     padding: 8px 16px;
     border-radius: 3px;
     cursor: pointer;
 }
+
 #logout-button:hover {
-    background-color: #f87d7d;
+    background-color: var(--button-yes-hover);
 }
+
 #logout-button:active {
-    background-color: #faa2a2;
+    background-color: var(--button-yes-active);
 }
+
 #extend-button {
     width: 75px;
-    background-color: #4da0ff;
-    color: white;
+    background-color: var(--button-no-bg);
+    color: var(--button-white);
     border: none;
     padding: 8px 8px;
     border-radius: 3px;
     cursor: pointer;
 }
+
 #extend-button:hover {
-    background-color: #8dc2fd;
+    background-color: var(--button-no-hover);
 }
+
 #extend-button:active {
-    background-color: #a2d7fa;
+    background-color: var(--button-no-active);
 }
+
 main {
     padding: 0 10px;
+    height: 97%;
+    min-height: 0;
 }
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(600px, 100%), 1fr));
+    grid-template-rows: auto;
+    gap: 10px;
+    padding: 10px 0 0 0;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    scrollbar-color: #919090 rgba(255, 255, 255, 0.08);
+    scrollbar-width: thin;
+}
+
+.grid-item {
+    background-color: var(--panel-bg);
+    padding: 8px;
+    border-radius: 5px;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+#main-um-tabs {
+    padding: 3px;
+    gap: 3px;
+    border: 1px dashed var(--border-light);
+    border-radius: 999px;
+    height: 30px;
+    width: fit-content;
+    margin: auto;
+    display: flex;
+    align-items: center;
+}
+#main-um-tabs button {
+    transition: all 0.1s;
+    height: 28px;
+    border-radius: 999px;
+    border: none;
+    background-color: var(--secondary-color);
+    color: var(--primary-color);
+}
+#main-um-tabs button:hover  {
+    background-color: var(--secondary-color-1);
+}
+#main-um-tabs button.active {
+    box-shadow: 0 2px 5px 2px rgb(33, 231, 43);
+}
+.status {
+    background-color: var(--status-bg);
+    padding: 10px;
+    border-radius: 6px;
+    border-left: solid 6px var(--status-border-color);
+}
+
+.warn {
+    border-left: solid 6px var(--warn-border-color);
+}
+
 #dialog {
     position: absolute;
     margin-top: 2px;
     width: 180px;
     height: 200px;
-    background-color: #141414f3;
+    background-color: var(--dialog-bg);
     border-radius: 3px 10px 10px 10px;
     padding: 3px;
     z-index: 100;
     margin-top: 35px;
 }
+
 #dialog button {
     display: block;
     border: none;
     background: transparent;
-    color: white;
+    color: var(--white);
     margin: 0;
-    border-bottom: solid 1px #eeeaea28;
+    border-bottom: solid 1px var(--dialog-btn-border);
     width: 100%;
     text-align: left;
     font-size: medium;
 }
+
 #logout-popup-confirmT {
     width: 75px;
-    background-color: #ff4d4d;
-    color: white;
+    background-color: var(--button-yes-bg);
+    color: var(--button-white);
     border: none;
     padding: 8px 8px;
     border-radius: 3px;
     cursor: pointer;
 }
+
 #logout-popup-confirmF {
     width: 75px;
-    background-color: #4da0ff;
-    color: white;
+    background-color: var(--button-no-bg);
+    color: var(--button-white);
     border: none;
     padding: 8px 8px;
     border-radius: 3px;
     cursor: pointer;
 }
+
 #logout-popup-confirmF:hover {
-    background-color: #6cb0fd;
+    background-color: var(--button-no-hover);
 }
+
 #logout-popup-confirmT:hover {
-    background-color: #fd716c;
+    background-color: var(--button-yes-hover);
 }
+
 #dialog button:hover {
-    background-color: #c0bfbf11;
+    background-color: var(--dialog-btn-hover-bg);
 }
+
 .popup {
+    overflow: auto;
     position: fixed;
     top: 50%;
     left: 50%;
     translate: -50% -50%;
-    background-color: #141414f6;
+    background-color: var(--popup-bg);
     width: 300px;
     height: 50%;
     border-radius: 5px;
-    border: solid 2px black;
+    border: solid 2px var(--border-dark);
     padding: 10px;
     text-align: center;
     z-index: 200;
     min-height: fit-content;
 }
+
 .small {
     width: 260px;
     height: 120px;
 }
+
 .medium {
     height: 210px;
     width: 320px;
 }
+
 #logout-popup {
     display: flex;
     align-items: center;
     justify-content: center;
     flex-direction: column;
 }
+
 #logout-popup p {
     margin-top: 0;
 }
+
 #welcome-message {
     display: block;
     font-size: 1.1rem;
     font-weight: 700;
     letter-spacing: 0.02em;
-    color: #f5f5f5;
+    color: var(--text-light);
     margin-bottom: 7px;
+}
+
+.checkbox-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    margin-top: 10px;
+}
+
+label {
+    display: inline-block;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-light);
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 #session-time {
@@ -167,71 +293,91 @@ main {
     font-size: 0.82rem;
     font-weight: 600;
 
-    color: #f7f4f4;
-    background: rgba(12, 10, 0, 0.12);
-    border: 1px solid rgba(154, 211, 255, 0.35);
+    color: var(--session-time-text);
+    background: var(--session-time-bg);
+    border: 1px solid var(--session-time-border);
     border-radius: 4px;
     padding: 6px 10px;
     text-transform: uppercase;
 }
+
 @media (max-width: 800px) {
     #dashboard {
         width: 98%;
     }
 }
+
 @media (max-width: 400px) {
     header {
         flex-direction: column;
     }
+
     #dialog {
         width: 208px;
     }
 }
+
 @media (min-width: 800px) {
     .large {
         width: 500px;
         min-width: 300px;
     }
+
     .medium {
         width: 230px;
     }
+
     .small {
         width: 350px;
         height: 150px;
     }
 }
+
 .hidden {
     display: none !important;
 }
+
 small {
     display: block;
-    color: gray;
+    color: var(--text-muted);
 }
+
 .popup input {
     width: 80%;
     height: 30px;
     background: transparent;
-    border: dashed white 1px;
+    border: dashed var(--white) 1px;
     border-radius: 5px;
-    color: white;
+    color: var(--white);
 }
+
 .popup input::placeholder {
     text-align: center;
 }
+
 .red {
-    color: red;
-    text-decoration: wavy underline red;
+    color: var(--error-color);
+    text-decoration: wavy underline var(--error-color);
 }
+
 .underline {
-    text-decoration: underline red;
+    text-decoration: underline var(--error-color);
 }
+
 .popup button {
     width: 75px;
-    background-color: #085808;
-    color: white;
+    background-color: var(--popup-button-bg);
+    color: var(--button-white);
     border: none;
     padding: 8px 8px;
     border-radius: 3px;
     cursor: pointer;
     margin-top: 20px;
+}
+
+input[type="checkbox"] {
+    display: inline-block;
+    margin-right: 5px;
+    width: 16px;
+    height: 16px;
 }

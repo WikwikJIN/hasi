@@ -1,9 +1,9 @@
-/*
-       /        /  /|  /-----  |--|
-      /        /  / |  |       |*.|
-     /___     /  /--|  \----\  |**|
-    /    \___/  /   |       |  |**|
-   /        /  /    |  _____/  |__|
+/*      __       __  __           __
+       / /      / / /| |  /----- |--|
+      / /      / / / | | |       |*.|
+     /_ \_____/ / /--| | \----\  |**|
+    / /\_____/ / /   | |      |  |**|
+   /_/      /_/ /    |_| _____/  |__|
  Hard to read, like the documentation
   —————— 2026  wikdomain.com ——————
 */
@@ -45,6 +45,7 @@ const registerListeners = require("./listeners");
 const registerV2Listeners = require("./listenersv2");
 let wasMasterKeyNotThere = false;
 const cors = require("cors");
+const { rateLimit } = require('express-rate-limit');
 const { error } = require("node:console");
 console.log("SETUP: Loading Express...");
 // Create express app
@@ -57,6 +58,16 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
   }),
 ); // Enable CORS
+// Rate limiting middleware
+const limiter = rateLimit({
+  message: { success: false, error: 'Too many requests, please try again later.', code: 'ratelimit' },
+  windowMs: 1 * 60 * 1000,
+  limit: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  ipv6Subnet: 56,
+})
+app.use("/session/gettoken", limiter);
 // Catch JSON parse errors from body-parser and return a clean 400
 app.use((err, req, res, next) => {
   if (err && err.type === "entity.parse.failed") {
@@ -84,14 +95,10 @@ db.exec(
 );
 const user = {
   tokenttlmin: 10,
-  create: db.prepare(
-    "INSERT INTO users (username, display_name, profile_picture, perms, password, is_banned) VALUES (?, ?, 'default', ?, ?,0)",
-  ),
+  create: db.prepare("INSERT INTO users (username, display_name, profile_picture, perms, password, is_banned) VALUES (?, ?, 'default', ?, ?,0)"),
   getByUsername: db.prepare("SELECT * FROM users WHERE username = ?"),
   getById: db.prepare("SELECT * FROM users WHERE id = ?"),
-  update: db.prepare(
-    "UPDATE users SET username = ?, display_name = ?, profile_picture = ?, perms = ?, password = ?, is_banned = ? WHERE id = ?",
-  ),
+  update: db.prepare("UPDATE users SET username = ?, display_name = ?, profile_picture = ?, perms = ?, password = ?, is_banned = ? WHERE id = ?"),
   delete: db.prepare("DELETE FROM users WHERE id = ?"),
   list: db.prepare("SELECT * FROM users"),
   getPassword: db.prepare("SELECT password FROM users WHERE id = ?"),
@@ -100,22 +107,12 @@ const user = {
   getBanStatus: db.prepare("SELECT is_banned FROM users WHERE id = ?"),
   getSession: db.prepare("SELECT * FROM sessions WHERE session_token = ?"),
   deleteSession: db.prepare("DELETE FROM sessions WHERE session_token = ?"),
-  deleteExpiredSessions: db.prepare(
-    "DELETE FROM sessions WHERE expires_at < ?",
-  ),
-  addSession: db.prepare(
-    "INSERT INTO sessions (for_user, session_token, expires_at) VALUES (?, ?, ?)",
-  ),
-  getUserBySession: db.prepare(
-    "SELECT u.* FROM users u JOIN sessions s ON u.id = s.for_user WHERE s.session_token = ? AND s.expires_at > ?",
-  ),
-  updateSessionExpiry: db.prepare(
-    "UPDATE sessions SET expires_at = ? WHERE session_token = ?",
-  ),
+  deleteExpiredSessions: db.prepare("DELETE FROM sessions WHERE expires_at < ?"),
+  addSession: db.prepare("INSERT INTO sessions (for_user, session_token, expires_at) VALUES (?, ?, ?)",),
+  getUserBySession: db.prepare("SELECT u.* FROM users u JOIN sessions s ON u.id = s.for_user WHERE s.session_token = ? AND s.expires_at > ?",),
+  updateSessionExpiry: db.prepare("UPDATE sessions SET expires_at = ? WHERE session_token = ?",),
   listSessions: db.prepare("SELECT * FROM sessions"),
-  deleteAllSessionsForUser: db.prepare(
-    "DELETE FROM sessions WHERE for_user = ?",
-  ),
+  deleteAllSessionsForUser: db.prepare("DELETE FROM sessions WHERE for_user = ?",),
 };
 
 // Raw and other prepared statements
@@ -174,7 +171,6 @@ const blockSession = (req, res, next) => {
   }
   next();
 };
-
 function newMaster() {
   const masterKey = crypto.randomBytes(32).toString("hex");
   hash(masterKey)
@@ -247,23 +243,23 @@ const validateSession = (req, res, next) => {
   if (!sessionToken)
     return res
       .status(400)
-      .json({ success: false, error: "Session token is required." });
+      .json({ success: false, error: "Session token is required.", code: "mwnotoken" });
 
   if (!userId)
     return res
       .status(400)
-      .json({ success: false, error: "User ID is required." });
+      .json({ success: false, error: "User ID is required.", code: "mwnouid" });
 
   const sessionRow = user.getSession.get(sessionToken);
   if (!sessionRow)
     return res
       .status(401)
-      .json({ success: false, error: "Invalid session token." });
+      .json({ success: false, error: "Invalid session token.", code: "mwbadtoken" });
 
   if (sessionRow.for_user != userId)
     return res
       .status(401)
-      .json({ success: false, error: "Invalid session token." });
+      .json({ success: false, error: "Invalid session token.", code: "mwbadtoken" });
 
   // Attach session info to request for use in route handlers
   req.sessionData = { userId, sessionToken, session: sessionRow };
@@ -366,10 +362,10 @@ app.post("/session/gettoken/:uid", blockSession, async (req, res) => {
   if (!password)
     return res
       .status(400)
-      .json({ success: false, error: "Password is required." });
+      .json({ success: false, error: "Password is required.", code: "nopasswordfound" });
   const userRow = user.getById.get(req.params.uid);
   if (!userRow)
-    return res.status(404).json({ success: false, error: "User not found." });
+    return res.status(404).json({ success: false, error: "User not found.", code: "nouserfound" });
   if (user.getPassword.get(req.params.uid).password === password) {
     const sessionToken = generateRandomKey(32);
     const expiresAt = new Date(Date.now() + user.tokenttlmin * 60 * 1000);
@@ -386,7 +382,7 @@ app.post("/session/gettoken/:uid", blockSession, async (req, res) => {
     );
     res.json({ success: true, sessionToken, expiresAt });
   } else {
-    res.status(401).json({ success: false, error: "Invalid credentials." });
+    res.status(401).json({ success: false, error: "Invalid credentials.", code: "invalidpass" });
   }
 });
 app.post("/session/usertoid", blockSession, async (req, res) => {
@@ -397,10 +393,10 @@ app.post("/session/usertoid", blockSession, async (req, res) => {
   if (!username)
     return res
       .status(400)
-      .json({ success: false, error: "Username is required." });
+      .json({ success: false, error: "Username is required.", code: "nouser" });
   const userRow = user.getByUsername.get(username);
   if (!userRow)
-    return res.status(404).json({ success: false, error: "User not found." });
+    return res.status(404).json({ success: false, error: "User not found.", code: "nouserfound" });
   res.json({ success: true, userId: userRow.id });
 });
 app.get("/session/idtouser/:uid", blockSession, async (req, res) => {
@@ -410,7 +406,7 @@ app.get("/session/idtouser/:uid", blockSession, async (req, res) => {
   const { uid } = req.params;
   const userRow = user.getById.get(uid);
   if (!userRow)
-    return res.status(404).json({ success: false, error: "User not found." });
+    return res.status(404).json({ success: false, error: "User not found.", code: "nouserfound" });
   res.json({ success: true, username: userRow.username });
 });
 app.post(
@@ -503,12 +499,12 @@ app.post(
       if (row2 && row2.id !== row.id) {
         return res
           .status(409)
-          .json({ success: false, message: "Username conflict" });
+          .json({ success: false, message: "Username conflict", code: "userconflict" });
       }
       if (/[^A-Za-z0-9]/.test(req.body.username)) {
         return res
-          .status(200)
-          .json({ success: false, message: "Bad username" });
+          .status(400)
+          .json({ success: false, message: "Bad username", code: "badusername" });
       } else {
         username = req.body.username;
       }
@@ -518,7 +514,7 @@ app.post(
         console.log('name: ' + req.body.displayName)
         return res
           .status(400)
-          .json({ success: false, message: "Bad display name" });
+          .json({ success: false, message: "Bad display name", code: "baddisplayname" });
       } else {
         display_name = req.body.displayName;
       }
@@ -541,7 +537,7 @@ app.post(
       console.error(`Failed to apply user(${userId}) settings: ${err}`);
       return res
         .status(500)
-        .json({ success: false, message: "Server-side error" });
+        .json({ success: false, message: "Server-side error", code: "serversideerr" });
     }
   },
 );
@@ -572,20 +568,53 @@ app.post(
     const { oldPassword, newPassword } = req.body;
     const userRow = user.getById.get(userId);
     if (!oldPassword || !newPassword) {
-      return res.status(400).json({ success: false, error: "Both old and new passwords are required." });
+      return res.status(400).json({ success: false, error: "Both old and new passwords are required.", code: "nooldandnewpass" });
     }
     if (newPassword.length < 8 || newPassword.length > 500) {
-      return res.status(400).json({ success: false, error: "New password must be 8-500 characters long." });
+      return res.status(400).json({ success: false, error: "New password must be 8-500 characters long.", code: "badpasslength" });
     }
     const hashedOldPassword = cryptoHash(oldPassword);
     if (hashedOldPassword !== userRow.password) {
-      return res.status(401).json({ success: false, error: "Old password is incorrect." });
+      return res.status(401).json({ success: false, error: "Old password is incorrect.", code: "badoldpass" });
     }
     const hashedNewPassword = cryptoHash(newPassword);
     user.setPassword.run(hashedNewPassword, userId);
     return res.status(200).json({ success: true, message: "Password updated successfully." });
   }
 );
+app.post("/session/admin/newuser", limiter, blockSession, validateSession, checkSessionPerms("admin"), async (req, res) => {
+  const { username, displayName, password, perms } = req.body;
+  //reference INSERT INTO users (username, display_name, profile_picture, perms, password, is_banned) VALUES (?, ?, 'default', ?, ?,0)
+  if (!username || !displayName || !password || !perms) {
+    return res.status(400).json({ success: false, error: "Missing required fields.", code: "missingfields" });
+  }
+  if (/[^A-Za-z0-9]/.test(username)) {
+    return res.status(400).json({ success: false, error: "Username can only contain alphanumeric characters.", code: "badusername" });
+  }
+  if (displayName.length > 25 || displayName.length < 3) {
+    return res.status(400).json({ success: false, error: "Display name must be between 3 and 25 characters.", code: "baddisplayname" });
+  }
+  if (password.length < 8 || password.length > 500) {
+    return res.status(400).json({ success: false, error: "Password must be between 8 and 500 characters.", code: "badpasswordlength" });
+  }
+  if (username.length > 25 || username.length < 3) {
+    return res.status(400).json({ success: false, error: "Username must be between 3 and 25 characters.", code: "badusernamelength" });
+  }
+  if (user.getByUsername.get(username)) {
+    return res.status(409).json({ success: false, error: "Username already exists.", code: "usernameexists" });
+  }
+  if (!Array.isArray(perms)) {
+    return res.status(400).json({ success: false, error: "Permissions must be an array.", code: "badperms" });
+  }
+  const hashedPassword = cryptoHash(password);
+  try {
+    user.create.run(username, displayName, JSON.stringify(perms), hashedPassword);
+    return res.status(201).json({ success: true, message: "User created successfully." });
+  } catch (err) {
+    console.error("Failed to create new user:", err);
+    return res.status(500).json({ success: false, error: "Server-side error.", code: "serversideerr" });
+  }
+});
 setInterval(() => {
   console.log("SESSION: Deleting expired sessions");
   const now = new Date().toISOString();
