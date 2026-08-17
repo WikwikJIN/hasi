@@ -1,9 +1,9 @@
 // HASI - V2 Listeners
 module.exports = function registerV2Listeners(app, deps) {
-  const { getFlagged, getBID, insertFlagged, checkPerms, v2Disabed } = deps;
+  const { getFlagged, getBID, insertFlagged, checkPerms, v2Disabled } = deps;
 
   const blockV2 = (res) => {
-    if (v2Disabed === true) {
+    if (v2Disabled === true) {
       res.status(400).json({ error: "V2 Disabled" });
       return true;
     }

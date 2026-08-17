@@ -32,7 +32,7 @@ const enabledApiKeyManagement =
   process.env.ENABLED_API_KEY_MANAGEMENT !== "false"; // Enable v1 endpoints and API key management
 const enabledUserSessionManagement =
   process.env.ENABLED_USER_SESSION_MANAGEMENT !== "false"; // Enable session-based endpoints
-const v2Disabled = process.env.V2_DISABLED === "true"; // Disable v2 endpoints if true
+const v2Disabled = process.env.V2_DISABLED === "true" || true; // Disable v2 endpoints if true. Disabled by default because it is unfinished
 
 // Import stuff and set up hash functions
 console.log("SETUP: Importing modules...");
@@ -116,17 +116,11 @@ const user = {
 };
 
 // Raw and other prepared statements
-const insertFlagged = db.prepare(
-  "INSERT INTO flagged (uid, description) VALUES (?, ?)",
-);
+const insertFlagged = db.prepare("INSERT INTO flagged (uid, description) VALUES (?, ?)",);
 const getFlagged = db.prepare("SELECT * FROM flagged WHERE uid = ?");
 const getApiKeys = db.prepare("SELECT * FROM apikeys");
-const markFlagged = db.prepare(
-  "UPDATE flagged SET uid = 0, description = '-' WHERE uid = ?",
-);
-const updateFlagged = db.prepare(
-  "UPDATE flagged SET description = ? WHERE uid = ?",
-);
+const markFlagged = db.prepare("UPDATE flagged SET uid = 0, description = '-' WHERE uid = ?",);
+const updateFlagged = db.prepare("UPDATE flagged SET description = ? WHERE uid = ?",);
 const getBID = db.prepare("SELECT * FROM flagged WHERE id = ?");
 
 // ! --------------------------- SETUP END --------------------------- ! \\
@@ -624,4 +618,5 @@ setInterval(() => {
 // Start listening to accept requests
 app.listen(PORT, () => {
   console.log(`Listening on port ${PORT}`);
+
 });
