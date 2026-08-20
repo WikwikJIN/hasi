@@ -28,7 +28,7 @@ module.exports = function registerListeners(app, deps) {
     }
   });
 
-  app.post("/flag", blockV1, checkPerms("write"), async (req, res) => {
+  app.post("/flag", checkPerms("write"), async (req, res) => {
     const { username, uid, description } = req.body;
     if (!description) return res.status(400).json({ error: "description is required." });
     if (!username && !uid) return res.status(400).json({ error: "username or uid is required." });
@@ -55,12 +55,11 @@ module.exports = function registerListeners(app, deps) {
       }
 
       insertFlagged.run(Number(resolvedUid), description);
-      res.status(201).json({ message: "User flagged successfully.", uid: Number(resolvedUid) });
+      return res.status(201).json({ message: "User flagged successfully.", uid: Number(resolvedUid) });
       console.log(`✅ User ${resolvedUsername || resolvedUid} (ID: ${resolvedUid}) flagged by ${req.ip}: ${description}`);
       console.log(`Short: ✅ Added ${resolvedUsername || resolvedUid} to flagged list, Description: ${description}`);
     } catch (error) {
       console.error(`Error flagging user ${username || uid}: ${error}`);
-      res.status(500).json({ error: "Internal server error" });
     }
   });
 

@@ -29,10 +29,10 @@ const domain = process.env.DOMAIN || "*"; // Domain for CORS and other purposes
 const readingNeedsAPIKey = false; // Require API key for user-reading endpoints (ex. GET /user/:username)
 // Feature flags for endpoint management
 const enabledApiKeyManagement =
-  process.env.ENABLED_API_KEY_MANAGEMENT !== "false"; // Enable v1 endpoints and API key management
+  process.env.ENABLED_API_KEY_MANAGEMENT !== "true"; // Enable v1 endpoints and API key management
 const enabledUserSessionManagement =
   process.env.ENABLED_USER_SESSION_MANAGEMENT !== "false"; // Enable session-based endpoints
-const v2Disabled = process.env.V2_DISABLED === "true" || true; // Disable v2 endpoints if true. Disabled by default because it is unfinished
+const v2Disabled = process.env.V2_DISABLED === "true"; // Disable v2 endpoints if true. Keep it opt-in to avoid always-blocking requests.
 
 // Import stuff and set up hash functions
 console.log("SETUP: Importing modules...");
@@ -189,10 +189,12 @@ if (process.argv.includes("--create-masterkey")) {
 
 // Middleware to check API key permissions
 const checkPerms = (requiredPerm, version = 1) => {
-  let key;
   return async (req, res, next) => {
-    if (!readingNeedsAPIKey) next();
-    if (unauthorizedAccess) next();
+    if (!readingNeedsAPIKey || unauthorizedAccess) {
+      return next();
+    }
+
+    let key;
     if (version === 1) {
       // Use legacy key in body for API version 1
       key = req.body.key;
@@ -202,6 +204,7 @@ const checkPerms = (requiredPerm, version = 1) => {
       console.log("Checking API key for v2:", req.headers["x-api-key"]);
       key = req.headers["x-api-key"];
     }
+
     if (!key) return res.status(401).json({ error: "API key is required." });
 
     const apiKeyRow = await findApiKey(key);
@@ -210,14 +213,14 @@ const checkPerms = (requiredPerm, version = 1) => {
     try {
       const perms = JSON.parse(apiKeyRow.perms);
       if (perms.includes("master") || perms.includes(requiredPerm)) {
-        next();
-      } else {
-        res
-          .status(403)
-          .json({ error: `Missing required permission: ${requiredPerm}` });
+        return next();
       }
+
+      return res
+        .status(403)
+        .json({ error: `Missing required permission: ${requiredPerm}` });
     } catch (e) {
-      res.status(500).json({ error: "Error parsing API key permissions." });
+      return res.status(500).json({ error: "Error parsing API key permissions." });
     }
   };
 };
@@ -237,10 +240,17 @@ registerListeners(app, {
   blockV1,
 });
 
+/*
 registerV2Listeners(app, {
   getFlagged,
   getBID,
   insertFlagged,
   checkPerms,
   v2Disabled,
+});
+*/
+
+// Start listening to accept requests
+app.listen(PORT, () => {
+  console.log(`Listening on port ${PORT}`);
 });
