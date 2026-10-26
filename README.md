@@ -1,3 +1,6 @@
+# Coming soon
+### This project is in development, and not production-ready yet.
+
 # HASI
  Inspired by Ruben Sim's EASI, HASI is a Roblox user flagging system that allows you to flag users for various reasons, and then check if a user is flagged or not. The system is made up of a Node.js server, a Roblox script, and a Python admin panel. The server uses a SQLite database to store the flagged users and their descriptions. The Roblox script is used to check if a user is flagged or not, and the Python admin panel is used to manage the flagged users.
 ## Installation / usage
