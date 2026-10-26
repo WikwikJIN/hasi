@@ -11,7 +11,7 @@ There are multiple parts of the project:
 |check.lua|The roblox script itself, that you put in serverscriptservice, it maybe will work with the new """"privacy"""" update, But i just told AI to not use the direct id grabbing and get it from the username since i only know JS|
 |/client/|A command line interface that allows you to manage the flagged users with API keys, and check if a user is flagged or not. It uses the server's API to communicate with the server.|
 |/webclientbeta/|A web client that allows you to manage the flagged users with username+passwords, and check if a user is flagged or not. It uses the server's session system to communicate with the server.|
-|Everything else|The core Node.js server|
+|Everything else|The core Node.js server, or other weird files|
 
 ### NOTE: `/webclientbeta/` is in progress yet and not ready.
 
