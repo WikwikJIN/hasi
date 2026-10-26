@@ -13,6 +13,8 @@ There are multiple parts of the project:
 |/webclientbeta/|A web client that allows you to manage the flagged users with username+passwords, and check if a user is flagged or not. It uses the server's session system to communicate with the server.|
 |Everything else|The core Node.js server|
 
+### NOTE: `/webclientbeta/` is in progress yet and not ready.
+
 ## HOW TO START THE SERVER
 1. Install Node.js if you haven't already.
 2. Navigate to the server directory.
